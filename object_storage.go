@@ -21,30 +21,43 @@ import (
 	"github.com/bokwoon95/notebrew/stacktrace"
 )
 
+// ObjectStorage represents an object storage provider.
 type ObjectStorage interface {
+	// Gets an object from a bucket.
 	Get(ctx context.Context, key string) (io.ReadCloser, error)
+
+	// Puts an object into a bucket. If key already exists, it should be
+	// replaced.
 	Put(ctx context.Context, key string, reader io.Reader) error
+
+	// Deletes an object from a bucket, regardless of whether it exists.
 	Delete(ctx context.Context, key string) error
+
+	// Copies an object identified by srcKey into destKey. srcKey should exist.
+	// If destKey already exists, it should be replaced.
 	Copy(ctx context.Context, srcKey, destKey string) error
 }
 
+// S3ObjectStorage implements ObjectStorage via an S3-compatible provider.
 type S3ObjectStorage struct {
-	Client *s3.Client
-	Bucket string
-	Logger *slog.Logger
+	Client *s3.Client   // S3 SDK client.
+	Bucket string       // S3 Bucket to put objects in.
+	Logger *slog.Logger // slog logger, must not be null.
 }
 
 var _ ObjectStorage = (*S3ObjectStorage)(nil)
 
+// S3StorageConfig holds the parameters needed to construct an S3ObjectStorage.
 type S3StorageConfig struct {
-	Endpoint        string
-	Region          string
-	Bucket          string
-	AccessKeyID     string
-	SecretAccessKey string
-	Logger          *slog.Logger
+	Endpoint        string       // S3 endpoint.
+	Region          string       // S3 region.
+	Bucket          string       // S3 bucket.
+	AccessKeyID     string       // S3 access key ID.
+	SecretAccessKey string       // S3 secret access key.
+	Logger          *slog.Logger // slog logger, must not be null.
 }
 
+// NewS3Storage constructs a new S3ObjectStorage.
 func NewS3Storage(ctx context.Context, config S3StorageConfig) (*S3ObjectStorage, error) {
 	storage := &S3ObjectStorage{
 		Client: s3.New(s3.Options{
@@ -66,6 +79,7 @@ func NewS3Storage(ctx context.Context, config S3StorageConfig) (*S3ObjectStorage
 	return storage, nil
 }
 
+// Gets an object from a bucket.
 func (storage *S3ObjectStorage) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	output, err := storage.Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: &storage.Bucket,
@@ -83,6 +97,7 @@ func (storage *S3ObjectStorage) Get(ctx context.Context, key string) (io.ReadClo
 	return output.Body, nil
 }
 
+// Puts an object into a bucket. If key already exists, it should be replaced.
 func (storage *S3ObjectStorage) Put(ctx context.Context, key string, reader io.Reader) error {
 	fileType, ok := AllowedFileTypes[path.Ext(key)]
 	if !ok || !fileType.Has(AttributeObject) {
@@ -154,6 +169,7 @@ func (storage *S3ObjectStorage) Put(ctx context.Context, key string, reader io.R
 	return nil
 }
 
+// Deletes an object from a bucket, regardless of whether it exists.
 func (storage *S3ObjectStorage) Delete(ctx context.Context, key string) error {
 	_, err := storage.Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: &storage.Bucket,
@@ -165,6 +181,8 @@ func (storage *S3ObjectStorage) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
+// Copies an object identified by srcKey into destKey. srcKey should exist. If
+// destKey already exists, it should be replaced.
 func (storage *S3ObjectStorage) Copy(ctx context.Context, srcKey, destKey string) error {
 	_, err := storage.Client.CopyObject(ctx, &s3.CopyObjectInput{
 		Bucket:     &storage.Bucket,
@@ -183,11 +201,15 @@ func (storage *S3ObjectStorage) Copy(ctx context.Context, srcKey, destKey string
 	return nil
 }
 
+// DirectoryObjectStorage implements ObjectStorage using a local directory.
 type DirectoryObjectStorage struct {
+	// Root directory to store objects in.
 	RootDir string
+	// Temp directory to store objects while they are being written.
 	TempDir string
 }
 
+// NewDirObjectStorage constructs a new DirectoryObjectStorage.
 func NewDirObjectStorage(rootDir, tempDir string) (*DirectoryObjectStorage, error) {
 	var err error
 	rootDir, err = filepath.Abs(filepath.FromSlash(rootDir))
@@ -205,6 +227,7 @@ func NewDirObjectStorage(rootDir, tempDir string) (*DirectoryObjectStorage, erro
 	return directoryObjectStorage, nil
 }
 
+// Gets an object from a bucket.
 func (storage *DirectoryObjectStorage) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	err := ctx.Err()
 	if err != nil {
