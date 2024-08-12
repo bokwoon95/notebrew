@@ -1,0 +1,180 @@
+[
+  {
+    "table": "files",
+    "indexes": [
+      {
+        "dialect": "postgres",
+        "type": "GIN",
+        "columns": [
+          "fts"
+        ]
+      },
+      {
+        "dialect": "mysql",
+        "type": "FULLTEXT",
+        "columns": [
+          "file_name",
+          "text"
+        ]
+      },
+      {
+        "columns": [
+          "parent_id",
+          "file_path"
+        ]
+      },
+      {
+        "columns": [
+          "parent_id",
+          "mod_time",
+          "file_path"
+        ]
+      },
+      {
+        "columns": [
+          "parent_id",
+          "creation_time",
+          "file_path"
+        ]
+      }
+    ],
+    "columns": [
+      {
+        "column": "file_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "primarykey": true
+      },
+      {
+        "column": "parent_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "index": true,
+        "references": {
+          "table": "files",
+          "column": "file_id"
+        }
+      },
+      {
+        "column": "file_path",
+        "type": {
+          "default": "VARCHAR(1500)"
+        },
+        "unique": true,
+        "notnull": true
+      },
+      {
+        "dialect": "sqlite",
+        "column": "file_name",
+        "type": {
+          "default": "VARCHAR(500)"
+        },
+        "generated": {
+          "expression": "replace(file_path, rtrim(file_path, replace(file_path, '/', '')), '')",
+          "stored": true
+        }
+      },
+      {
+        "dialect": "mysql",
+        "column": "file_name",
+        "type": {
+          "default": "VARCHAR(500)"
+        },
+        "generated": {
+          "expression": "substring_index(file_path, '/', -1)",
+          "stored": true
+        }
+      },
+      {
+        "column": "is_dir",
+        "type": {
+          "default": "BOOLEAN"
+        },
+        "notnull": true
+      },
+      {
+        "column": "text",
+        "type": {
+          "default": "TEXT",
+          "mysql": "MEDIUMTEXT"
+        }
+      },
+      {
+        "column": "data",
+        "type": {
+          "default": "BLOB",
+          "postgres": "BYTEA",
+          "mysql": "MEDIUMBLOB"
+        }
+      },
+      {
+        "column": "size",
+        "type": {
+          "default": "BIGINT"
+        }
+      },
+      {
+        "column": "mod_time",
+        "type": {
+          "default": "DATETIME",
+          "postgres": "TIMESTAMPTZ"
+        },
+        "index": true
+      },
+      {
+        "column": "creation_time",
+        "type": {
+          "default": "DATETIME",
+          "postgres": "TIMESTAMPTZ"
+        },
+        "index": true
+      },
+      {
+        "dialect": "postgres",
+        "column": "fts",
+        "type": {
+          "default": "TSVECTOR"
+        },
+        "generated": {
+          "expression": "to_tsvector('english', regexp_replace(file_path, '^.+/', ''), text)",
+          "stored": true
+        }
+      }
+    ]
+  },
+  {
+    "table": "pinned_file",
+    "primarykey": [
+      "parent_id",
+      "file_id"
+    ],
+    "columns": [
+      {
+        "column": "parent_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "references": {
+          "table": "files",
+          "column": "file_id"
+        }
+      },
+      {
+        "column": "file_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "references": {
+          "table": "files",
+          "column": "file_id"
+        }
+      }
+    ]
+  }
+]
