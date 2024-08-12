@@ -79,7 +79,7 @@ func NewS3Storage(ctx context.Context, config S3StorageConfig) (*S3ObjectStorage
 	return storage, nil
 }
 
-// Gets an object from a bucket.
+// Get implements the Get ObjectStorage operation for S3ObjectStorage.
 func (storage *S3ObjectStorage) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	output, err := storage.Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: &storage.Bucket,
@@ -97,7 +97,7 @@ func (storage *S3ObjectStorage) Get(ctx context.Context, key string) (io.ReadClo
 	return output.Body, nil
 }
 
-// Puts an object into a bucket. If key already exists, it should be replaced.
+// Put implements the Put ObjectStorage operation for S3ObjectStorage.
 func (storage *S3ObjectStorage) Put(ctx context.Context, key string, reader io.Reader) error {
 	fileType, ok := AllowedFileTypes[path.Ext(key)]
 	if !ok || !fileType.Has(AttributeObject) {
