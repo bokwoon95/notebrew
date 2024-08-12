@@ -14,6 +14,8 @@ type Error struct {
 	Callers []string
 }
 
+var _ error = (*Error)(nil)
+
 // New returns a wrapped error containing the stack trace of where New was
 // called.
 //
@@ -67,10 +69,12 @@ func RecoverPanic(err *error) {
 	}
 }
 
+// Unwrap returns the underlying error.
 func (e *Error) Unwrap() error {
 	return e.Err
 }
 
+// Error implements the error interface.
 func (e *Error) Error() string {
 	var b strings.Builder
 	last := len(e.Callers) - 1
