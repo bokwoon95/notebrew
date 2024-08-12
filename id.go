@@ -11,7 +11,7 @@ import (
 )
 
 // ID is like a UUIDv7 but simpler (implementation-wise). The first 5 bytes of
-// the ID are the timestamp component (specifically, the rightmost 5 bytes of a
+// the ID are the timestamp component (specifically, the 5 rightmost bytes of a
 // 64-bit unix timestamp integer converted to big endian form) and the
 // remaining 11 bytes are completely random.
 //
