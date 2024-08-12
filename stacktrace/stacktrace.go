@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// Error represents an error annotated with a stack trace of callers.
 type Error struct {
 	Err     error
 	Callers []string
