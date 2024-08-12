@@ -23,36 +23,52 @@ var bufPool = sync.Pool{
 	New: func() any { return &bytes.Buffer{} },
 }
 
+// FS represents a writeable filesystem and is an extension to the fs.FS
+// interface of the standard library.
 type FS interface {
-	// WithContext returns a new FS with the given context.
+	// WithContext returns a new FS with the given context which applies to all
+	// subsequent operations carried out by the filesystem.
 	WithContext(context.Context) FS
 
 	// Open opens the named file.
 	Open(name string) (fs.File, error)
 
-	// OpenWriter opens an io.WriteCloser that represents an instance of a
-	// file. The parent directory must exist. If the file doesn't exist, it
-	// should be created. If the file exists, its should be truncated.
+	// OpenWriter opens an io.WriteCloser that represents a writeable instance
+	// of a file. The parent directory must exist. If the file doesn't exist,
+	// it should be created. If the file exists, its should be truncated. Write
+	// operations should ideally be atomic i.e. if two writers are writing to
+	// the same file, last writer wins.
 	OpenWriter(name string, perm fs.FileMode) (io.WriteCloser, error)
 
+	// ReadDir reads the named directory and returns a list of directory
+	// entries sorted by filename.
 	ReadDir(name string) ([]fs.DirEntry, error)
 
-	// Mkdir creates a new directory with the specified name.
+	// Mkdir creates a new directory with the specified name. The directory
+	// should not already exist.
 	Mkdir(name string, perm fs.FileMode) error
 
+	// MkdirAll creates a directory named path, along with any necessary
+	// parents, and returns nil, or else returns an error.
 	MkdirAll(name string, perm fs.FileMode) error
 
-	// Remove removes the named file or directory.
+	// Remove removes the named file or directory. The file should exist. If
+	// the file is a directory, the directory should be empty.
 	Remove(name string) error
 
+	// RemoveAll removes path and any children it contains. It removes
+	// everything it can but returns the first error it encounters. If the path
+	// does not exist, RemoveAll returns nil (no error).
 	RemoveAll(name string) error
 
 	// Rename renames (moves) oldName to newName. newName must not exist.
 	Rename(oldName, newName string) error
 
+	// Copy copies the srcName to destName. destName must not exist.
 	Copy(srcName, destName string) error
 }
 
+// Attribute represents the various attributes that a file type have.
 type Attribute int
 
 const (
@@ -65,17 +81,24 @@ const (
 	AttributeVideo      Attribute = 1 << 6 // Can be displayed with a <video> tag.
 )
 
+// FileType represents a file type.
 type FileType struct {
-	Ext         string
-	ContentType string
-	Limit       int64
-	Attribute   Attribute
+	Ext         string    // File extension.
+	ContentType string    // Content-Type of the file.
+	Limit       int64     // Size limit for the file type.
+	Attribute   Attribute // File type attributes.
 }
 
+// Has reports whether a particular file type contains the attribute.
 func (fileType FileType) Has(attribute Attribute) bool {
 	return fileType.Attribute&attribute != 0
 }
 
+// AllowedFileTypes is a list of file types allowed by notebrew.
+//
+// It is exported so that it may be extended by others using notebrew as a
+// library, although no effort has been made to test whether such additions
+// would work seamlessly with the rest of the library.
 var AllowedFileTypes = map[string]FileType{
 	".html": {
 		Ext:         ".html",
