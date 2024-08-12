@@ -16,7 +16,7 @@ import (
 // remaining 11 bytes are completely random.
 //
 // The timestamp component occupies 5 bytes so that the first 8 characters of a
-// Base32 encoded ID perfectly represent the timestamp (while the remaining 18
+// Base32 encoded ID perfectly holds the timestamp (while the remaining 18
 // characters are completely random). It is unclear what benefit this brings as
 // an ID is almost always displayed in canonical UUID form
 // xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx for maxmimum compatibility, but if we
