@@ -23,8 +23,7 @@ var bufPool = sync.Pool{
 	New: func() any { return &bytes.Buffer{} },
 }
 
-// FS represents a writeable filesystem and is an extension to the fs.FS
-// interface of the standard library.
+// FS represents a writeable filesystem.
 type FS interface {
 	// WithContext returns a new FS with the given context which applies to all
 	// subsequent operations carried out by the filesystem.
