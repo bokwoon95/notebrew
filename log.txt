@@ -1,2 +1,5 @@
 schema.go
 id.go
+fs.go
+object_storage.go
+fs_directory.go
