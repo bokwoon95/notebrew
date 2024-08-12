@@ -84,8 +84,8 @@ const (
 // FileType represents a file type.
 type FileType struct {
 	Ext         string    // File extension.
-	ContentType string    // Content-Type of the file.
-	Limit       int64     // Size limit for the file type.
+	ContentType string    // Content-Type that file should be served with.
+	SizeLimit   int64     // Size limit for the file type.
 	Attribute   Attribute // File type attributes.
 }
 
@@ -103,115 +103,115 @@ var AllowedFileTypes = map[string]FileType{
 	".html": {
 		Ext:         ".html",
 		ContentType: "text/html; charset=utf-8",
-		Limit:       1 << 20, /* 1 MB */
+		SizeLimit:   1 << 20, /* 1 MB */
 		Attribute:   AttributeGzippable | AttributeEditable,
 	},
 	".css": {
 		Ext:         ".css",
 		ContentType: "text/css; charset=utf-8",
-		Limit:       1 << 20, /* 1 MB */
+		SizeLimit:   1 << 20, /* 1 MB */
 		Attribute:   AttributeGzippable | AttributeEditable,
 	},
 	".js": {
 		Ext:         ".js",
 		ContentType: "text/javascript; charset=utf-8",
-		Limit:       1 << 20, /* 1 MB */
+		SizeLimit:   1 << 20, /* 1 MB */
 		Attribute:   AttributeGzippable | AttributeEditable,
 	},
 	".md": {
 		Ext:         ".md",
 		ContentType: "text/markdown; charset=utf-8",
-		Limit:       1 << 20, /* 1 MB */
+		SizeLimit:   1 << 20, /* 1 MB */
 		Attribute:   AttributeGzippable | AttributeEditable,
 	},
 	".txt": {
 		Ext:         ".txt",
 		ContentType: "text/plain; charset=utf-8",
-		Limit:       1 << 20, /* 1 MB */
+		SizeLimit:   1 << 20, /* 1 MB */
 		Attribute:   AttributeGzippable | AttributeEditable,
 	},
 	".jpeg": {
 		Ext:         ".jpeg",
 		ContentType: "image/jpeg",
-		Limit:       10 << 20, /* 10 MB */
+		SizeLimit:   10 << 20, /* 10 MB */
 		Attribute:   AttributeObject | AttributeImg,
 	},
 	".jpg": {
 		Ext:         ".jpg",
 		ContentType: "image/jpeg",
-		Limit:       10 << 20, /* 10 MB */
+		SizeLimit:   10 << 20, /* 10 MB */
 		Attribute:   AttributeObject | AttributeImg,
 	},
 	".png": {
 		Ext:         ".png",
 		ContentType: "image/png",
-		Limit:       10 << 20, /* 10 MB */
+		SizeLimit:   10 << 20, /* 10 MB */
 		Attribute:   AttributeObject | AttributeImg,
 	},
 	".webp": {
 		Ext:         ".webp",
 		ContentType: "image/webp",
-		Limit:       10 << 20, /* 10 MB */
+		SizeLimit:   10 << 20, /* 10 MB */
 		Attribute:   AttributeObject | AttributeImg,
 	},
 	".gif": {
 		Ext:         ".gif",
 		ContentType: "image/gif",
-		Limit:       10 << 20, /* 10 MB */
+		SizeLimit:   10 << 20, /* 10 MB */
 		Attribute:   AttributeObject | AttributeImg,
 	},
 	".svg": {
 		Ext:         ".svg",
 		ContentType: "image/svg+xml",
-		Limit:       1 << 20, /* 1 MB */
+		SizeLimit:   1 << 20, /* 1 MB */
 		Attribute:   AttributeGzippable | AttributeImg,
 	},
 	".eot": {
 		Ext:         ".eot",
 		ContentType: "font/eot",
-		Limit:       2 << 20, /* 2 MB */
+		SizeLimit:   2 << 20, /* 2 MB */
 		Attribute:   AttributeGzippable | AttributeFont,
 	},
 	".otf": {
 		Ext:         ".otf",
 		ContentType: "font/otf",
-		Limit:       2 << 20, /* 2 MB */
+		SizeLimit:   2 << 20, /* 2 MB */
 		Attribute:   AttributeGzippable | AttributeFont,
 	},
 	".ttf": {
 		Ext:         ".ttf",
 		ContentType: "font/ttf",
-		Limit:       2 << 20, /* 2 MB */
+		SizeLimit:   2 << 20, /* 2 MB */
 		Attribute:   AttributeGzippable | AttributeFont,
 	},
 	".woff": {
 		Ext:         ".woff",
 		ContentType: "font/woff",
-		Limit:       2 << 20, /* 2 MB */
+		SizeLimit:   2 << 20, /* 2 MB */
 		Attribute:   AttributeFont,
 	},
 	".woff2": {
 		Ext:         ".woff2",
 		ContentType: "font/woff2",
-		Limit:       2 << 20, /* 2 MB */
+		SizeLimit:   2 << 20, /* 2 MB */
 		Attribute:   AttributeFont,
 	},
 	".atom": {
 		Ext:         ".atom",
 		ContentType: "application/atom+xml; charset=utf-8",
-		Limit:       1 << 20, /* 1 MB */
+		SizeLimit:   1 << 20, /* 1 MB */
 		Attribute:   AttributeGzippable,
 	},
 	".json": {
 		Ext:         ".json",
 		ContentType: "application/json",
-		Limit:       1 << 20, /* 1 MB */
+		SizeLimit:   1 << 20, /* 1 MB */
 		Attribute:   AttributeGzippable,
 	},
 	".tgz": {
 		Ext:         ".tgz",
 		ContentType: "application/octet-stream",
-		Limit:       -1, /* no limit */
+		SizeLimit:   -1, /* no limit */
 		Attribute:   AttributeObject | AttributeAttachment,
 	},
 }
