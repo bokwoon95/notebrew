@@ -25,6 +25,13 @@ type DirectoryFSConfig struct {
 }
 
 // DirectoryFS implements a writeable filesystem using a local directory.
+//
+// NOTE: Internally, each FS method should only work with forward slash file
+// path separators. Even on Windows, because Windows accepts forward slash file
+// path separators just fine. This simplifies our implementation a lot because
+// we only ever have to deal with forward slashes. Externally, each FS method
+// already rejects backslashes as part of the fs.FS contract which states that
+// names should satisfy fs.ValidPath(name).
 type DirectoryFS struct {
 	// RootDir is the root directory of the DirectoryFS. Has to be an absolute
 	// path!!
@@ -341,6 +348,7 @@ func (fsys *DirectoryFS) Copy(srcName, destName string) error {
 	if !fs.ValidPath(destName) || strings.Contains(destName, "\\") {
 		return &fs.PathError{Op: "copy", Path: destName, Err: fs.ErrInvalid}
 	}
+	// Make sure destName does not exist.
 	_, err = os.Stat(path.Join(fsys.RootDir, destName))
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
@@ -349,6 +357,7 @@ func (fsys *DirectoryFS) Copy(srcName, destName string) error {
 	} else {
 		return &fs.PathError{Op: "copy", Path: destName, Err: fs.ErrExist}
 	}
+	// Make sure srcName exists.
 	srcFileInfo, err := os.Stat(path.Join(fsys.RootDir, srcName))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -356,6 +365,7 @@ func (fsys *DirectoryFS) Copy(srcName, destName string) error {
 		}
 		return stacktrace.New(err)
 	}
+	// If srcFile is a file, we can just copy the file and be done with it.
 	if !srcFileInfo.IsDir() {
 		srcFile, err := fsys.WithContext(fsys.ctx).Open(srcName)
 		if err != nil {
@@ -377,12 +387,18 @@ func (fsys *DirectoryFS) Copy(srcName, destName string) error {
 		}
 		return nil
 	}
+	// Otherwise, we'll need to recursively walk the directory and copy each
+	// file and directory we find along the way.
+	//
+	// We're passing in a relative path to fs.WalkDir because it calls
+	// (*DirectoryFS).ReadDir() under the hood, which expects a relative path
+	// and resolves it to an absolute path by itself.
 	group, groupctx := errgroup.WithContext(fsys.ctx)
 	err = fs.WalkDir(fsys.WithContext(groupctx), srcName, func(filePath string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return stacktrace.New(err)
 		}
-		relativePath := strings.TrimPrefix(strings.TrimPrefix(filePath, srcName), string(os.PathSeparator))
+		relativePath := strings.TrimPrefix(strings.TrimPrefix(filePath, srcName), "/")
 		if dirEntry.IsDir() {
 			err := fsys.WithContext(groupctx).MkdirAll(path.Join(destName, relativePath), 0755)
 			if err != nil {
