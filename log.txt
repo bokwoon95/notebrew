@@ -1,7 +1,5 @@
 schema.go
 id.go
-fs.go
 object_storage.go
+fs.go
 fs_directory.go
-
-TODO: change S3ObjectStorage to take in a ContentTypeMap that it will use to determine the content type (when doing a PUT operation)

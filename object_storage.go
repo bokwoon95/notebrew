@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -40,21 +39,23 @@ type ObjectStorage interface {
 
 // S3ObjectStorage implements ObjectStorage via an S3-compatible provider.
 type S3ObjectStorage struct {
-	Client *s3.Client   // S3 SDK client.
-	Bucket string       // S3 Bucket to put objects in.
-	Logger *slog.Logger // slog logger, must not be null.
+	Client         *s3.Client        // S3 SDK client.
+	Bucket         string            // S3 Bucket to put objects in.
+	ContentTypeMap map[string]string // File extension to Content-Type map.
+	Logger         *slog.Logger      // slog logger, must not be null.
 }
 
 var _ ObjectStorage = (*S3ObjectStorage)(nil)
 
 // S3StorageConfig holds the parameters needed to construct an S3ObjectStorage.
 type S3StorageConfig struct {
-	Endpoint        string       // S3 endpoint.
-	Region          string       // S3 region.
-	Bucket          string       // S3 bucket.
-	AccessKeyID     string       // S3 access key ID.
-	SecretAccessKey string       // S3 secret access key.
-	Logger          *slog.Logger // slog logger, must not be null.
+	Endpoint        string            // S3 endpoint.
+	Region          string            // S3 region.
+	Bucket          string            // S3 bucket.
+	AccessKeyID     string            // S3 access key ID.
+	SecretAccessKey string            // S3 secret access key.
+	ContentTypeMap  map[string]string // File extension to Content-Type map.
+	Logger          *slog.Logger      // slog logger, must not be null.
 }
 
 // NewS3Storage constructs a new S3ObjectStorage.
@@ -65,8 +66,9 @@ func NewS3Storage(ctx context.Context, config S3StorageConfig) (*S3ObjectStorage
 			Region:       config.Region,
 			Credentials:  aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(config.AccessKeyID, config.SecretAccessKey, "")),
 		}),
-		Bucket: config.Bucket,
-		Logger: config.Logger,
+		Bucket:         config.Bucket,
+		ContentTypeMap: config.ContentTypeMap,
+		Logger:         config.Logger,
 	}
 	// Ping the bucket and see if we have access.
 	_, err := storage.Client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
@@ -99,10 +101,6 @@ func (storage *S3ObjectStorage) Get(ctx context.Context, key string) (io.ReadClo
 
 // Put implements the Put ObjectStorage operation for S3ObjectStorage.
 func (storage *S3ObjectStorage) Put(ctx context.Context, key string, reader io.Reader) error {
-	fileType, ok := AllowedFileTypes[path.Ext(key)]
-	if !ok || !fileType.Has(AttributeObject) {
-		return fmt.Errorf("%s: invalid filetype %s", key, path.Ext(key))
-	}
 	cleanup := func(uploadId *string) {
 		_, err := storage.Client.AbortMultipartUpload(context.Background(), &s3.AbortMultipartUploadInput{
 			Bucket:   &storage.Bucket,
@@ -113,11 +111,15 @@ func (storage *S3ObjectStorage) Put(ctx context.Context, key string, reader io.R
 			storage.Logger.Error(stacktrace.New(err).Error())
 		}
 	}
+	contentType := storage.ContentTypeMap[path.Ext(key)]
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
 	createResult, err := storage.Client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
 		Bucket:       &storage.Bucket,
 		Key:          aws.String(key),
 		CacheControl: aws.String("max-age=31536000, immutable" /* 1 year */),
-		ContentType:  aws.String(fileType.ContentType),
+		ContentType:  aws.String(contentType),
 	})
 	if err != nil {
 		return stacktrace.New(err)
