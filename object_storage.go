@@ -10,7 +10,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -171,7 +170,7 @@ func (storage *S3ObjectStorage) Put(ctx context.Context, key string, reader io.R
 	return nil
 }
 
-// Deletes an object from a bucket, regardless of whether it exists.
+// Delete implements the Delete ObjectStorage operation for S3ObjectStorage.
 func (storage *S3ObjectStorage) Delete(ctx context.Context, key string) error {
 	_, err := storage.Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: &storage.Bucket,
@@ -183,8 +182,7 @@ func (storage *S3ObjectStorage) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-// Copies an object identified by srcKey into destKey. srcKey should exist. If
-// destKey already exists, it should be replaced.
+// Copy implements the Copy ObjectStorage operation for S3ObjectStorage.
 func (storage *S3ObjectStorage) Copy(ctx context.Context, srcKey, destKey string) error {
 	_, err := storage.Client.CopyObject(ctx, &s3.CopyObjectInput{
 		Bucket:     &storage.Bucket,
@@ -207,8 +205,6 @@ func (storage *S3ObjectStorage) Copy(ctx context.Context, srcKey, destKey string
 type DirectoryObjectStorage struct {
 	// Root directory to store objects in.
 	RootDir string
-	// Temp directory to store objects while they are being written.
-	TempDir string
 }
 
 // NewDirObjectStorage constructs a new DirectoryObjectStorage.
@@ -218,18 +214,13 @@ func NewDirObjectStorage(rootDir, tempDir string) (*DirectoryObjectStorage, erro
 	if err != nil {
 		return nil, err
 	}
-	tempDir, err = filepath.Abs(filepath.FromSlash(tempDir))
-	if err != nil {
-		return nil, err
-	}
 	directoryObjectStorage := &DirectoryObjectStorage{
 		RootDir: filepath.FromSlash(rootDir),
-		TempDir: filepath.FromSlash(tempDir),
 	}
 	return directoryObjectStorage, nil
 }
 
-// Gets an object from a bucket.
+// Get implements the Get ObjectStorage operation for DirectoryObjectStorage.
 func (storage *DirectoryObjectStorage) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	err := ctx.Err()
 	if err != nil {
@@ -248,6 +239,7 @@ func (storage *DirectoryObjectStorage) Get(ctx context.Context, key string) (io.
 	return file, nil
 }
 
+// Put implements the Put ObjectStorage operation for DirectoryObjectStorage.
 func (storage *DirectoryObjectStorage) Put(ctx context.Context, key string, reader io.Reader) error {
 	err := ctx.Err()
 	if err != nil {
@@ -277,6 +269,8 @@ func (storage *DirectoryObjectStorage) Put(ctx context.Context, key string, read
 	return nil
 }
 
+// Delete implements the Delete ObjectStorage operation for
+// DirectoryObjectStorage.
 func (storage *DirectoryObjectStorage) Delete(ctx context.Context, key string) error {
 	err := ctx.Err()
 	if err != nil {
@@ -295,6 +289,7 @@ func (storage *DirectoryObjectStorage) Delete(ctx context.Context, key string) e
 	return nil
 }
 
+// Copy implements the Copy ObjectStorage operation for DirectoryObjectStorage.
 func (storage *DirectoryObjectStorage) Copy(ctx context.Context, srcKey, destKey string) error {
 	err := ctx.Err()
 	if err != nil {
@@ -327,58 +322,5 @@ func (storage *DirectoryObjectStorage) Copy(ctx context.Context, srcKey, destKey
 	if err != nil {
 		return stacktrace.New(err)
 	}
-	return nil
-}
-
-type InMemoryObjectStorage struct {
-	mu      sync.RWMutex
-	entries map[string][]byte
-}
-
-var _ ObjectStorage = (*InMemoryObjectStorage)(nil)
-
-func NewInMemoryObjectStorage() *InMemoryObjectStorage {
-	return &InMemoryObjectStorage{
-		mu:      sync.RWMutex{},
-		entries: make(map[string][]byte),
-	}
-}
-
-func (storage *InMemoryObjectStorage) Get(ctx context.Context, key string) (io.ReadCloser, error) {
-	storage.mu.RLock()
-	value, ok := storage.entries[key]
-	storage.mu.RUnlock()
-	if !ok {
-		return nil, &fs.PathError{Op: "get", Path: key, Err: fs.ErrNotExist}
-	}
-	return io.NopCloser(bytes.NewReader(value)), nil
-}
-
-func (storage *InMemoryObjectStorage) Put(ctx context.Context, key string, reader io.Reader) error {
-	value, err := io.ReadAll(reader)
-	if err != nil {
-		return err
-	}
-	storage.mu.Lock()
-	storage.entries[key] = value
-	storage.mu.Unlock()
-	return nil
-}
-
-func (storage *InMemoryObjectStorage) Delete(ctx context.Context, key string) error {
-	storage.mu.Lock()
-	delete(storage.entries, key)
-	storage.mu.Unlock()
-	return nil
-}
-
-func (storage *InMemoryObjectStorage) Copy(ctx context.Context, srcKey, destKey string) error {
-	storage.mu.Lock()
-	value, ok := storage.entries[srcKey]
-	if !ok {
-		return &fs.PathError{Op: "copy", Path: srcKey, Err: fs.ErrNotExist}
-	}
-	storage.entries[destKey] = value
-	storage.mu.Unlock()
 	return nil
 }
