@@ -10,18 +10,20 @@ import (
 	"time"
 )
 
-// ID is like a UUIDv7 but simpler (implementation-wise). The first 5 bytes of
-// the ID are the timestamp component (specifically, the 5 rightmost bytes of a
-// 64-bit unix timestamp integer converted to a big endian byte slice) and the
-// remaining 11 bytes are completely random.
+// ID is a 16-byte UUID that is sortable by a timestamp component. The first 5
+// bytes of the ID are the timestamp component and the remaining 11 bytes are
+// completely random. Unlike UUIDv7, there is no version byte and there are no
+// monotonic guarantees, which makes generating a spec-compliant ID much
+// simpler.
 //
-// The timestamp component occupies 5 bytes so that the first 8 characters of a
-// Base32 encoded ID perfectly holds the timestamp (while the remaining 18
-// characters are completely random). It is unclear what benefit this brings as
-// an ID is almost always displayed in canonical UUID form
-// xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx for maxmimum compatibility, but if we
-// ever need to represent IDs in a more compact format, Crockford Base32 is the
-// way to go.
+// The timestamp component is 5 bytes so that it can be perfectly encoded by an
+// 8-character Base32 string. While this feature is not used by IDs because
+// they are always displayed in canonical UUID form
+// xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx for maxmimum compatibility, these 5
+// byte timestamps appear in other places in notebrew which do exploit the fact
+// that they can be perfectly encoded by an 8-character Base32 string so it
+// just seems like a good idea to ensure all timestamp prefixes occupy 5 bytes
+// for consistency.
 type ID [16]byte
 
 // NewID creates a new ID.

@@ -26,12 +26,10 @@ type DirectoryFSConfig struct {
 
 // DirectoryFS implements a writeable filesystem using a local directory.
 //
-// NOTE: Internally, each FS method should only work with forward slash file
-// path separators. Even on Windows, because Windows accepts forward slash file
-// path separators just fine. This simplifies our implementation a lot because
-// we only ever have to deal with forward slashes. Externally, each FS method
-// already rejects backslashes as part of the fs.FS contract which states that
-// names should satisfy fs.ValidPath(name).
+// NOTE: Each FS method should only ever work with forward slash file path
+// separators. Even on Windows, because Windows accepts forward slash file path
+// separators just fine. This simplifies our implementation a lot because we
+// only ever have to think about forward slashes.
 type DirectoryFS struct {
 	// RootDir is the root directory of the DirectoryFS. Has to be an absolute
 	// path!!
@@ -68,7 +66,7 @@ func NewDirectoryFS(config DirectoryFSConfig) (*DirectoryFS, error) {
 	return directoryFS, nil
 }
 
-// As unmarshals the current directoryFS into the target if it is a valid
+// As writes the current directoryFS into the target if it is a valid
 // DirectoryFS pointer.
 func (fsys *DirectoryFS) As(target any) bool {
 	switch target := target.(type) {
@@ -196,7 +194,7 @@ type DirectoryFileWriter struct {
 	writeFailed bool
 }
 
-// ReadFrom implements the io.ReaderFrom interface.
+// ReadFrom implements io.ReaderFrom.
 func (file *DirectoryFileWriter) ReadFrom(r io.Reader) (n int64, err error) {
 	err = file.ctx.Err()
 	if err != nil {
@@ -211,7 +209,9 @@ func (file *DirectoryFileWriter) ReadFrom(r io.Reader) (n int64, err error) {
 	return n, nil
 }
 
-// Write writes data into the DirectoryFileWriter.
+// Write writes len(b) bytes from b to the DirectoryFileWriter. It returns the
+// number of bytes written and an error, if any. Write returns a non-nil error
+// when n != len(b).
 func (file *DirectoryFileWriter) Write(p []byte) (n int, err error) {
 	err = file.ctx.Err()
 	if err != nil {

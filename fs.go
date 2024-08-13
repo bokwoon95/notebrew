@@ -67,7 +67,8 @@ type FS interface {
 	Copy(srcName, destName string) error
 }
 
-// Attribute represents the various attributes that a file type have.
+// Attribute represents the various attributes that a file type have e.g.
+// whether it is gzippable, whether it's an object, etc.
 type Attribute int
 
 const (
@@ -95,9 +96,9 @@ func (fileType FileType) Has(attribute Attribute) bool {
 
 // AllowedFileTypes is a list of file types allowed by notebrew.
 //
-// It is exported so that it may be extended by others using notebrew as a
-// library, although no effort has been made to test whether such additions
-// would work seamlessly with the rest of the library.
+// It is exported so that people using notebrew as a library may add their own
+// file types to it, although no effort has been made to test whether such
+// additions would work seamlessly with the rest of the library.
 var AllowedFileTypes = map[string]FileType{
 	".html": {
 		Ext:         ".html",

@@ -38,23 +38,45 @@ type ObjectStorage interface {
 
 // S3ObjectStorage implements ObjectStorage via an S3-compatible provider.
 type S3ObjectStorage struct {
-	Client         *s3.Client        // S3 SDK client.
-	Bucket         string            // S3 Bucket to put objects in.
-	ContentTypeMap map[string]string // File extension to Content-Type map.
-	Logger         *slog.Logger      // slog logger, must not be nil.
+	// S3 SDK client.
+	Client *s3.Client
+
+	// S3 Bucket to put objects in.
+	Bucket string
+
+	// File extension to Content-Type map.
+	ContentTypeMap map[string]string
+
+	// Logger is used for reporting errors that cannot be handled and are
+	// thrown away.
+	Logger *slog.Logger
 }
 
 var _ ObjectStorage = (*S3ObjectStorage)(nil)
 
 // S3StorageConfig holds the parameters needed to construct an S3ObjectStorage.
 type S3StorageConfig struct {
-	Endpoint        string            // S3 endpoint.
-	Region          string            // S3 region.
-	Bucket          string            // S3 bucket.
-	AccessKeyID     string            // S3 access key ID.
-	SecretAccessKey string            // S3 secret access key.
-	ContentTypeMap  map[string]string // File extension to Content-Type map.
-	Logger          *slog.Logger      // slog logger, must not be nil.
+	// (Required) S3 endpoint.
+	Endpoint string
+
+	// (Required) S3 region.
+	Region string
+
+	// (Required) S3 bucket.
+	Bucket string
+
+	// (Required) S3 access key ID.
+	AccessKeyID string
+
+	// (Required) S3 secret access key.
+	SecretAccessKey string
+
+	// File extension to Content-Type map.
+	ContentTypeMap map[string]string
+
+	// (Required) Logger is used for reporting errors that cannot be handled
+	// and are thrown away.
+	Logger *slog.Logger
 }
 
 // NewS3Storage constructs a new S3ObjectStorage.

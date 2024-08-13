@@ -40,6 +40,11 @@ func (row *Row) Scan(destPtr any, format string, values ...any) {
 }
 
 // Bytes returns the []byte value of the expression.
+//
+// If an existing byte slice is provided, it appends into to that slice
+// (allowing for byte slices to be reused). It returns a nil slice if the
+// expression is NULL, unless a byte slice was provided in which case it
+// returns the same byte slice but with its length truncated to 0.
 func (row *Row) Bytes(b []byte, format string, values ...any) []byte {
 	if row.sqlRows == nil {
 		row.fetchExprs = append(row.fetchExprs, Expression{Format: format, Values: values})

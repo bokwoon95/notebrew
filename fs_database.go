@@ -41,6 +41,34 @@ var gzipWriterPool = sync.Pool{
 
 // DatabaseFSConfig holds the parameters needed to construct a DatabaseFS.
 type DatabaseFSConfig struct {
+	// (Required) DB is the sql database.
+	DB *sql.DB
+
+	// (Required) Dialect is the database dialect. Currently, the only dialects
+	// supported are "sqlite", "postgres" and "mysql".
+	Dialect string
+
+	// ErrorCode converts an error returned by a database query into a
+	// dialect-specific error code.
+	ErrorCode func(error) string
+
+	// (Required) ObjectStorage is used for storage of binary objects.
+	ObjectStorage ObjectStorage
+
+	// (Required) Logger is used for reporting errors that cannot be handled
+	// and are thrown away.
+	Logger *slog.Logger
+
+	// UpdateStorageUsed is called whenever the storage used by a site changes
+	// (delta being the number of bytes that have been added or removed).
+	// Specifically, this happens on calls to OpenWriter, Remove, RemoveAll and
+	// Copy.
+	UpdateStorageUsed func(ctx context.Context, siteName string, delta int64) error
+}
+
+// DatabaseFS implements a writeable filesystem using a database and an
+// ObjectStorage provider.
+type DatabaseFS struct {
 	// DB is the sql database.
 	DB *sql.DB
 
@@ -48,35 +76,37 @@ type DatabaseFSConfig struct {
 	// are "sqlite", "postgres" and "mysql".
 	Dialect string
 
-	// ErrorCode takes an error an converts it into a dialect-specific error
-	// code.
+	// ErrorCode converts an error returned by a database query into a
+	// dialect-specific error code.
 	ErrorCode func(error) string
 
-	// ObjectStorage is used to store binary objects that don't belong in the
-	// database.
+	// ObjectStorage is used for storage of binary objects.
 	ObjectStorage ObjectStorage
 
-	// slog logger, must not be nil.
+	// Logger is used for reporting errors that cannot be handled and are
+	// thrown away.
 	Logger *slog.Logger
 
-	// UpdateStorageUsed is called whenever the storage used by a site (identified by the sitePrefix)
-	// changes i.e. on calls to OpenWriter, Remove, RemoveAll and Copy. This makes it possible to accurately track the storaged used per site, without needing Delta is the number of bytes that have been added/removed.
-	UpdateStorageUsed func(ctx context.Context, sitePrefix string, delta int64) error
+	// UpdateStorageUsed is called whenever the storage used by a site changes
+	// (delta being the number of bytes that have been added or removed).
+	// Specifically, this happens on calls to OpenWriter, Remove, RemoveAll and
+	// Copy.
+	UpdateStorageUsed func(ctx context.Context, siteName string, delta int64) error
+
+	// ctx provides the context of all operations called on the DatabaseFS.
+	ctx context.Context
+
+	// values is a key-value store containing values used by some filesystem
+	// operations. See the documentation of (*DatabaseFS).WithValues() for more
+	// information.
+	//
+	// context.Context could have been used as the key-value store instead, but
+	// using context for multiple values is unnecessarily slow compared to
+	// using a map.
+	values map[string]any
 }
 
-// DatabaseFS implements a writeable filesystem using a database and an
-// ObjectStorage provider.
-type DatabaseFS struct {
-	DB                *sql.DB
-	Dialect           string
-	ErrorCode         func(error) string
-	ObjectStorage     ObjectStorage
-	Logger            *slog.Logger
-	UpdateStorageUsed func(ctx context.Context, sitePrefix string, delta int64) error
-	ctx               context.Context
-	values            map[string]any // modTime time.Time, creationTime time.Time, caption string
-}
-
+// NewDatabaseFS constructs a new DatabaseFS.
 func NewDatabaseFS(config DatabaseFSConfig) (*DatabaseFS, error) {
 	databaseFS := &DatabaseFS{
 		DB:                config.DB,
@@ -90,6 +120,8 @@ func NewDatabaseFS(config DatabaseFSConfig) (*DatabaseFS, error) {
 	return databaseFS, nil
 }
 
+// As writes the current databaseFS into the target if it is a valid DatabaseFS
+// pointer.
 func (fsys *DatabaseFS) As(target any) bool {
 	switch target := target.(type) {
 	case *DatabaseFS:
@@ -103,6 +135,7 @@ func (fsys *DatabaseFS) As(target any) bool {
 	}
 }
 
+// WithContext returns a new DatabaseFS with the given context.
 func (fsys *DatabaseFS) WithContext(ctx context.Context) FS {
 	return &DatabaseFS{
 		DB:                fsys.DB,
@@ -116,6 +149,18 @@ func (fsys *DatabaseFS) WithContext(ctx context.Context) FS {
 	}
 }
 
+// WithValues returns a new DatabaseFS with the given values.
+//
+// Currently, the following values are recognized:
+//
+// - "modTime"      => time.Time (sets the modTime for files created by OpenWriter/Mkdir/MkdirAll)
+// - "creationTime" => time.Time (sets the creationTime for files created by OpenWriter/Mkdir/MkdirAll)
+// - "caption"      => string    (sets the caption for images created by OpenWriter)
+//
+// These values will apply to *all* filesystem operations, so if you only want
+// to set the modTime or creationTime for a specific file you will have to
+// create a new instance of a DatabaseFS with WithValues(), create that file,
+// then throw the DatabaseFS instance away.
 func (fsys *DatabaseFS) WithValues(values map[string]any) FS {
 	return &DatabaseFS{
 		DB:                fsys.DB,
@@ -129,6 +174,7 @@ func (fsys *DatabaseFS) WithValues(values map[string]any) FS {
 	}
 }
 
+// DatabaseFileInfo describes a file returned by DatabaseFS.
 type DatabaseFileInfo struct {
 	FileID       ID
 	FilePath     string
@@ -138,17 +184,37 @@ type DatabaseFileInfo struct {
 	CreationTime time.Time
 }
 
+// DatabaseFile represents a readable instance of a file returned by
+// DatabaseFS.
 type DatabaseFile struct {
-	ctx               context.Context
-	fileType          FileType
+	// ctx provides the context of all operations called on the DatabaseFile.
+	ctx context.Context
+
+	// FileType of the DatabaseFile.
+	fileType FileType
+
+	// FileInfo of the DatabaseFile.
+	info *DatabaseFileInfo
+
+	// Whether the file is fulltext indexed.
 	isFulltextIndexed bool
-	objectStorage     ObjectStorage
-	info              *DatabaseFileInfo
-	buf               *bytes.Buffer
-	gzipReader        *gzip.Reader
-	readCloser        io.ReadCloser
+
+	// buf holds the raw bytes of the DatabaseFile. It may be gzipped,
+	// depending on whether the file is gzippable and is not fulltext indexed.
+	buf *bytes.Buffer
+
+	// If the file is gzippable and is not fulltext indexed, the raw bytes of
+	// the file are gzipped and Read operations should read from the gzipReader
+	// instead (which in turn reads from the raw bytes inside the buffer).
+	gzipReader *gzip.Reader
+
+	// If the file is an object, it is not stored by the database but rather by
+	// the filesystem's ObjectStorage provider. In which case, readCloser would
+	// be a reference to the object.
+	readCloser io.ReadCloser
 }
 
+// Open implements the Open FS operation for DatabaseFS.
 func (fsys *DatabaseFS) Open(name string) (fs.File, error) {
 	err := fsys.ctx.Err()
 	if err != nil {
@@ -157,11 +223,13 @@ func (fsys *DatabaseFS) Open(name string) (fs.File, error) {
 	if !fs.ValidPath(name) || strings.Contains(name, "\\") {
 		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrInvalid}
 	}
+	// If we are opening the root dir, return a hardcoded DatabaseFile
+	// representing the root (the root directory is not stored in a database
+	// FS, it is an implicit construct).
 	if name == "." {
 		file := &DatabaseFile{
-			ctx:           fsys.ctx,
-			objectStorage: fsys.ObjectStorage,
-			info:          &DatabaseFileInfo{FilePath: ".", isDir: true},
+			ctx:  fsys.ctx,
+			info: &DatabaseFileInfo{FilePath: ".", isDir: true},
 		}
 		return file, nil
 	}
@@ -177,10 +245,9 @@ func (fsys *DatabaseFS) Open(name string) (fs.File, error) {
 		},
 	}, func(row *sq.Row) *DatabaseFile {
 		file := &DatabaseFile{
-			ctx:           fsys.ctx,
-			fileType:      fileType,
-			objectStorage: fsys.ObjectStorage,
-			info:          &DatabaseFileInfo{},
+			ctx:      fsys.ctx,
+			fileType: fileType,
+			info:     &DatabaseFileInfo{},
 		}
 		file.info.FileID = row.UUID("file_id")
 		file.info.FilePath = row.String("file_path")
@@ -201,7 +268,7 @@ func (fsys *DatabaseFS) Open(name string) (fs.File, error) {
 	}
 	file.isFulltextIndexed = IsFulltextIndexed(file.info.FilePath)
 	if fileType.Has(AttributeObject) {
-		file.readCloser, err = file.objectStorage.Get(file.ctx, file.info.FileID.String()+path.Ext(file.info.FilePath))
+		file.readCloser, err = fsys.ObjectStorage.Get(file.ctx, file.info.FileID.String()+path.Ext(file.info.FilePath))
 		if err != nil {
 			return nil, stacktrace.New(err)
 		}
@@ -240,6 +307,7 @@ func (fsys *DatabaseFS) Open(name string) (fs.File, error) {
 	return file, nil
 }
 
+// Stat implements the fs.StatFS interface.
 func (fsys *DatabaseFS) Stat(name string) (fs.FileInfo, error) {
 	err := fsys.ctx.Err()
 	if err != nil {
@@ -276,20 +344,28 @@ func (fsys *DatabaseFS) Stat(name string) (fs.FileInfo, error) {
 	return fileInfo, nil
 }
 
+// Base name of the file.
 func (fileInfo *DatabaseFileInfo) Name() string { return path.Base(fileInfo.FilePath) }
 
+// Size of the file in bytes.
 func (fileInfo *DatabaseFileInfo) Size() int64 { return fileInfo.size }
 
+// Modification time.
 func (fileInfo *DatabaseFileInfo) ModTime() time.Time { return fileInfo.modTime }
 
+// Whether the file is a directory.
 func (fileInfo *DatabaseFileInfo) IsDir() bool { return fileInfo.isDir }
 
+// Sys always returns nil.
 func (fileInfo *DatabaseFileInfo) Sys() any { return nil }
 
+// Type bits (needed to implement fs.DirEntry).
 func (fileInfo *DatabaseFileInfo) Type() fs.FileMode { return fileInfo.Mode().Type() }
 
+// Returns the file info (needed to implement fs.DirEntry).
 func (fileInfo *DatabaseFileInfo) Info() (fs.FileInfo, error) { return fileInfo, nil }
 
+// File mode bits.
 func (fileInfo *DatabaseFileInfo) Mode() fs.FileMode {
 	if fileInfo.isDir {
 		return fs.ModeDir
@@ -297,10 +373,14 @@ func (fileInfo *DatabaseFileInfo) Mode() fs.FileMode {
 	return 0
 }
 
+// Stat returns the file info describing the file.
 func (file *DatabaseFile) Stat() (fs.FileInfo, error) {
 	return file.info, nil
 }
 
+// Read reads up to len(b) bytes from the DatabaseFile and stores them in b. It
+// returns the number of bytes read and any error encountered. At end of file,
+// Read returns 0, io.EOF.
 func (file *DatabaseFile) Read(p []byte) (n int, err error) {
 	err = file.ctx.Err()
 	if err != nil {
@@ -320,12 +400,18 @@ func (file *DatabaseFile) Read(p []byte) (n int, err error) {
 	}
 }
 
+// emptyReader is a reader that always returns io.EOF when read i.e.
+// perpetually empty. It's used to provide a valid and non-nil reader to reset
+// gzip.Reader so it doesn't panic. We need to reset gzip.Reader before storing
+// it back in the gzipReaderPool so that it doesn't retain a reference to its
+// underlying reader and prevent it from being garbage collected.
 type emptyReader struct{}
 
 var empty = (*emptyReader)(nil)
 
 func (empty *emptyReader) Read(p []byte) (n int, err error) { return 0, io.EOF }
 
+// Close closes the DatabaseFile for reading.
 func (file *DatabaseFile) Close() error {
 	if file.info.isDir {
 		return nil
@@ -371,7 +457,7 @@ type DatabaseFileWriter struct {
 	dialect           string
 	objectStorage     ObjectStorage
 	logger            *slog.Logger
-	updateStorageUsed func(ctx context.Context, sitePrefix string, delta int64) error
+	updateStorageUsed func(ctx context.Context, siteName string, delta int64) error
 
 	ctx                 context.Context
 	fileType            FileType
@@ -790,7 +876,7 @@ func (file *DatabaseFileWriter) Close() error {
 			sitePrefix = head
 		}
 		delta := file.size - file.initialSize
-		err := file.updateStorageUsed(file.ctx, sitePrefix, delta)
+		err := file.updateStorageUsed(file.ctx, strings.TrimPrefix(sitePrefix, "@"), delta)
 		if err != nil {
 			return stacktrace.New(err)
 		}
@@ -1146,7 +1232,7 @@ func (fsys *DatabaseFS) Remove(name string) error {
 		if strings.HasPrefix(head, "@") || strings.Contains(head, ".") {
 			sitePrefix = head
 		}
-		err := fsys.UpdateStorageUsed(fsys.ctx, sitePrefix, -totalSize)
+		err := fsys.UpdateStorageUsed(fsys.ctx, strings.TrimPrefix(sitePrefix, "@"), -totalSize)
 		if err != nil {
 			return stacktrace.New(err)
 		}
@@ -1267,7 +1353,7 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 		if strings.HasPrefix(head, "@") || strings.Contains(head, ".") {
 			sitePrefix = head
 		}
-		err := fsys.UpdateStorageUsed(fsys.ctx, sitePrefix, -totalSize)
+		err := fsys.UpdateStorageUsed(fsys.ctx, strings.TrimPrefix(sitePrefix, "@"), -totalSize)
 		if err != nil {
 			return stacktrace.New(err)
 		}
@@ -1518,7 +1604,7 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 			if strings.HasPrefix(head, "@") || strings.Contains(head, ".") {
 				sitePrefix = head
 			}
-			err := fsys.UpdateStorageUsed(fsys.ctx, sitePrefix, size)
+			err := fsys.UpdateStorageUsed(fsys.ctx, strings.TrimPrefix(sitePrefix, "@"), size)
 			if err != nil {
 				return stacktrace.New(err)
 			}
@@ -1696,7 +1782,7 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 		if strings.HasPrefix(head, "@") || strings.Contains(head, ".") {
 			sitePrefix = head
 		}
-		err := fsys.UpdateStorageUsed(fsys.ctx, sitePrefix, totalSize)
+		err := fsys.UpdateStorageUsed(fsys.ctx, strings.TrimPrefix(sitePrefix, "@"), totalSize)
 		if err != nil {
 			return err
 		}
@@ -1735,6 +1821,15 @@ func IsForeignKeyViolation(dialect string, errorCode string) bool {
 	}
 }
 
+// IsFulltextIndexed reports whether a file is eligible for fulltext indexing
+// by virtue of its position within the filesystem. For example, html files in
+// the pages directory are fulltext indexed but not html files in the output
+// directory because those are generated by notebrew itself (we don't want to
+// index generated files, only user source files).
+//
+// If a file is not fulltext-indexed, it is stored in a DatabaseFS in gzipped
+// form to save space and also to skip gzipping it later when we serve it to
+// the user's browser because it's already been pre-gzipped.
 func IsFulltextIndexed(filePath string) bool {
 	fileType, ok := AllowedFileTypes[path.Ext(filePath)]
 	if !ok {
