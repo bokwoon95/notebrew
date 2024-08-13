@@ -39,15 +39,25 @@ var gzipWriterPool = sync.Pool{
 	},
 }
 
+// DatabaseFSConfig holds the parameters needed to construct a DatabaseFS.
 type DatabaseFSConfig struct {
-	DB                *sql.DB
-	Dialect           string
+	// DB is the sql database.
+	DB *sql.DB
+
+	// Dialect is the database dialect. Currently, the only dialects supported
+	// are "sqlite", "postgres" and "mysql".
+	Dialect string
+
+	// ErrorCode takes an error an converts it into a dialect-specific error
+	// code.
 	ErrorCode         func(error) string
 	ObjectStorage     ObjectStorage
 	Logger            *slog.Logger
 	UpdateStorageUsed func(ctx context.Context, sitePrefix string, delta int64) error
 }
 
+// DatabaseFS implements a writeable filesystem using a database and an
+// ObjectStorage provider.
 type DatabaseFS struct {
 	DB                *sql.DB
 	Dialect           string

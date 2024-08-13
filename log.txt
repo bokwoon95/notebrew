@@ -3,3 +3,4 @@ id.go
 object_storage.go
 fs.go
 fs_directory.go
+fs_database.go
