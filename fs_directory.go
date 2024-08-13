@@ -390,9 +390,10 @@ func (fsys *DirectoryFS) Copy(srcName, destName string) error {
 	// Otherwise, we'll need to recursively walk the directory and copy each
 	// file and directory we find along the way.
 	//
-	// We're passing in a relative path to fs.WalkDir because it calls
-	// (*DirectoryFS).ReadDir() under the hood, which expects a relative path
-	// and resolves it to an absolute path by itself.
+	// We're passing in srcName as the root to fs.WalkDir and not
+	// path.Join(fsys.RootDir, srcName) because fs.WalkDir calls fsys.ReadDir()
+	// under the hood, and fsys.ReadDir() internally already converts srcName
+	// to path.Join(fsys.RootDir, srcName).
 	group, groupctx := errgroup.WithContext(fsys.ctx)
 	err = fs.WalkDir(fsys.WithContext(groupctx), srcName, func(filePath string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
