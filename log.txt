@@ -4,3 +4,5 @@ object_storage.go
 fs.go
 fs_directory.go
 fs_database.go
+
+TODO: once the port of nb10 is complete, change sq to use Go 1.23's range over iterator funcs (we will need to drastically change the error handling of all code that uses a cursor).

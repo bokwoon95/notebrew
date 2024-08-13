@@ -41,7 +41,7 @@ type S3ObjectStorage struct {
 	Client         *s3.Client        // S3 SDK client.
 	Bucket         string            // S3 Bucket to put objects in.
 	ContentTypeMap map[string]string // File extension to Content-Type map.
-	Logger         *slog.Logger      // slog logger, must not be null.
+	Logger         *slog.Logger      // slog logger, must not be nil.
 }
 
 var _ ObjectStorage = (*S3ObjectStorage)(nil)
@@ -54,7 +54,7 @@ type S3StorageConfig struct {
 	AccessKeyID     string            // S3 access key ID.
 	SecretAccessKey string            // S3 secret access key.
 	ContentTypeMap  map[string]string // File extension to Content-Type map.
-	Logger          *slog.Logger      // slog logger, must not be null.
+	Logger          *slog.Logger      // slog logger, must not be nil.
 }
 
 // NewS3Storage constructs a new S3ObjectStorage.

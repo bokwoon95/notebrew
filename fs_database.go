@@ -50,9 +50,17 @@ type DatabaseFSConfig struct {
 
 	// ErrorCode takes an error an converts it into a dialect-specific error
 	// code.
-	ErrorCode         func(error) string
-	ObjectStorage     ObjectStorage
-	Logger            *slog.Logger
+	ErrorCode func(error) string
+
+	// ObjectStorage is used to store binary objects that don't belong in the
+	// database.
+	ObjectStorage ObjectStorage
+
+	// slog logger, must not be nil.
+	Logger *slog.Logger
+
+	// UpdateStorageUsed is called whenever the storage used by a site (identified by the sitePrefix)
+	// changes i.e. on calls to OpenWriter, Remove, RemoveAll and Copy. This makes it possible to accurately track the storaged used per site, without needing Delta is the number of bytes that have been added/removed.
 	UpdateStorageUsed func(ctx context.Context, sitePrefix string, delta int64) error
 }
 
