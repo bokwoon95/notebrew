@@ -502,22 +502,16 @@ func (fsys *DatabaseFS) OpenWriter(name string, _ fs.FileMode) (io.WriteCloser, 
 	}
 	now := time.Now().UTC()
 	modTime := now
-	if value := fsys.values["modTime"]; value != nil {
-		if value, ok := value.(time.Time); ok {
-			modTime = value
-		}
+	if value, ok := fsys.values["modTime"].(time.Time); ok {
+		modTime = value
 	}
 	creationTime := now
-	if value := fsys.values["creationTime"]; value != nil {
-		if value, ok := value.(time.Time); ok {
-			creationTime = value
-		}
+	if value, ok := fsys.values["creationTime"].(time.Time); ok {
+		creationTime = value
 	}
 	caption := ""
-	if value := fsys.values["caption"]; value != nil {
-		if value, ok := value.(string); ok {
-			caption = value
-		}
+	if value, ok := fsys.values["caption"].(string); ok {
+		caption = value
 	}
 	file := &DatabaseFileWriter{
 		db:                fsys.DB,
@@ -946,16 +940,12 @@ func (fsys *DatabaseFS) Mkdir(name string, _ fs.FileMode) error {
 	}
 	now := time.Now().UTC()
 	modTime := now
-	if value := fsys.values["modTime"]; value != nil {
-		if value, ok := value.(time.Time); ok {
-			modTime = value
-		}
+	if value, ok := fsys.values["modTime"].(time.Time); ok {
+		modTime = value
 	}
 	creationTime := now
-	if value := fsys.values["creationTime"]; value != nil {
-		if value, ok := value.(time.Time); ok {
-			creationTime = value
-		}
+	if value, ok := fsys.values["creationTime"].(time.Time); ok {
+		creationTime = value
 	}
 	parentDir := path.Dir(name)
 	if parentDir == "." {
@@ -1042,16 +1032,12 @@ func (fsys *DatabaseFS) MkdirAll(name string, _ fs.FileMode) error {
 	// Insert the top level directory (no parent), ignoring duplicates.
 	now := time.Now().UTC()
 	modTime := now
-	if value := fsys.values["modTime"]; value != nil {
-		if value, ok := value.(time.Time); ok {
-			modTime = value
-		}
+	if value, ok := fsys.values["modTime"].(time.Time); ok {
+		modTime = value
 	}
 	creationTime := now
-	if value := fsys.values["creationTime"]; value != nil {
-		if value, ok := value.(time.Time); ok {
-			creationTime = value
-		}
+	if value, ok := fsys.values["creationTime"].(time.Time); ok {
+		creationTime = value
 	}
 	segments := strings.Split(name, "/")
 	switch fsys.Dialect {
