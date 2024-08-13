@@ -106,8 +106,8 @@ type DatabaseFS struct {
 	// - "caption"      => string    (sets the caption for images created by OpenWriter)
 	//
 	// context.Context could have been used as the key-value store instead, but
-	// using context for multiple values is unnecessarily slow compared to
-	// using a map.
+	// using context for storing multiple values would be quite slow compared
+	// to using a map.
 	values map[string]any
 }
 
