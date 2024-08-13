@@ -97,8 +97,13 @@ type DatabaseFS struct {
 	ctx context.Context
 
 	// values is a key-value store containing values used by some filesystem
-	// operations. See the documentation of (*DatabaseFS).WithValues() for more
-	// information.
+	// operations. Currently, the following values are recognized:
+	//
+	// - "modTime"      => time.Time (sets the modTime for files created by OpenWriter/Mkdir/MkdirAll)
+	//
+	// - "creationTime" => time.Time (sets the creationTime for files created by OpenWriter/Mkdir/MkdirAll)
+	//
+	// - "caption"      => string    (sets the caption for images created by OpenWriter)
 	//
 	// context.Context could have been used as the key-value store instead, but
 	// using context for multiple values is unnecessarily slow compared to
@@ -154,12 +159,14 @@ func (fsys *DatabaseFS) WithContext(ctx context.Context) FS {
 // Currently, the following values are recognized:
 //
 // - "modTime"      => time.Time (sets the modTime for files created by OpenWriter/Mkdir/MkdirAll)
+//
 // - "creationTime" => time.Time (sets the creationTime for files created by OpenWriter/Mkdir/MkdirAll)
+//
 // - "caption"      => string    (sets the caption for images created by OpenWriter)
 //
 // These values will apply to *all* filesystem operations, so if you only want
 // to set the modTime or creationTime for a specific file you will have to
-// create a new instance of a DatabaseFS with WithValues(), create that file,
+// create a new instance of a DatabaseFS using WithValues(), create that file,
 // then throw the DatabaseFS instance away.
 func (fsys *DatabaseFS) WithValues(values map[string]any) FS {
 	return &DatabaseFS{
