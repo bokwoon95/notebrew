@@ -28,7 +28,8 @@ type ObjectStorage interface {
 	// replaced.
 	Put(ctx context.Context, key string, reader io.Reader) error
 
-	// Deletes an object from a bucket, regardless of whether it exists.
+	// Deletes an object from a bucket. It returns no error if the object does
+	// not exist.
 	Delete(ctx context.Context, key string) error
 
 	// Copies an object identified by srcKey into destKey. srcKey should exist.

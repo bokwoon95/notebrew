@@ -47,15 +47,15 @@ type FS interface {
 	// should not already exist.
 	Mkdir(name string, perm fs.FileMode) error
 
-	// MkdirAll creates a directory named path, along with any necessary
-	// parents, and returns nil, or else returns an error.
+	// MkdirAll creates a directory with the given name, along with any
+	// necessary parents, and returns nil, or else returns an error.
 	MkdirAll(name string, perm fs.FileMode) error
 
 	// Remove removes the named file or directory. The file should exist. If
 	// the file is a directory, the directory should be empty.
 	Remove(name string) error
 
-	// RemoveAll removes path and any children it contains. It removes
+	// RemoveAll removes name and any children it contains. It removes
 	// everything it can but returns the first error it encounters. If the path
 	// does not exist, RemoveAll returns nil (no error).
 	RemoveAll(name string) error
@@ -220,6 +220,7 @@ var (
 	editableExts []string // do not modify! only read
 	imgExts      []string // do not modify! only read
 	fontExts     []string // do not modify! only read
+	objectExts   []string // do not modify! only read
 	populateExts = sync.OnceFunc(func() {
 		for _, fileType := range AllowedFileTypes {
 			if fileType.Has(AttributeEditable) {
@@ -230,6 +231,9 @@ var (
 			}
 			if fileType.Has(AttributeFont) {
 				fontExts = append(fontExts, fileType.Ext)
+			}
+			if fileType.Has(AttributeObject) {
+				objectExts = append(objectExts, fileType.Ext)
 			}
 		}
 		slices.Sort(editableExts)

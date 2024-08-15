@@ -1085,6 +1085,7 @@ func (fsys *DatabaseFS) Mkdir(name string, _ fs.FileMode) error {
 	return nil
 }
 
+// MkdirAll implements the MkdirAll FS operation for DatabaseFS.
 func (fsys *DatabaseFS) MkdirAll(name string, _ fs.FileMode) error {
 	err := fsys.ctx.Err()
 	if err != nil {
@@ -1218,6 +1219,7 @@ func (fsys *DatabaseFS) MkdirAll(name string, _ fs.FileMode) error {
 	return nil
 }
 
+// Remove implements the Remove FS operation for DatabaseFS.
 func (fsys *DatabaseFS) Remove(name string) error {
 	err := fsys.ctx.Err()
 	if err != nil {
@@ -1329,6 +1331,7 @@ func (fsys *DatabaseFS) Remove(name string) error {
 	return nil
 }
 
+// RemoveAll implements the RemoveAll FS operation for DatabaseFS.
 func (fsys *DatabaseFS) RemoveAll(name string) error {
 	err := fsys.ctx.Err()
 	if err != nil {
@@ -1337,14 +1340,18 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 	if !fs.ValidPath(name) || strings.Contains(name, "\\") || name == "." {
 		return &fs.PathError{Op: "removeall", Path: name, Err: fs.ErrInvalid}
 	}
+	// Find the objects for all the files we are about to delete.
 	pattern := wildcardReplacer.Replace(name) + "/%"
 	extFilter := sq.Expr("1 <> 1")
-	if len(imgExts) > 0 {
+	if len(objectExts) > 0 {
 		var b strings.Builder
-		args := make([]any, 0, len(imgExts)+1)
+		args := make([]any, 0, len(objectExts))
 		b.WriteString("(file_path LIKE '%.tgz' ESCAPE '\\'")
-		for _, ext := range imgExts {
-			b.WriteString(" OR file_path LIKE {} ESCAPE '\\'")
+		for _, ext := range objectExts {
+			if b.Len()>0{
+				b.WriteString(" OR ")
+			}
+			b.WriteString("file_path LIKE {} ESCAPE '\\'")
 			args = append(args, "%"+wildcardReplacer.Replace(ext))
 		}
 		b.WriteString(")")
