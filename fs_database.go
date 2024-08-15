@@ -1344,6 +1344,7 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 	pattern := wildcardReplacer.Replace(name) + "/%"
 	extFilter := sq.Expr("1 <> 1")
 	if len(objectExts) > 0 {
+		// TODO: fix this! probably has bug.
 		var b strings.Builder
 		args := make([]any, 0, len(objectExts))
 		b.WriteString("(file_path LIKE '%.tgz' ESCAPE '\\'")
