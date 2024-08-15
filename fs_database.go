@@ -2033,8 +2033,8 @@ func IsForeignKeyViolation(dialect string, errorCode string) bool {
 // index generated files, only user source files).
 //
 // If a file is not fulltext-indexed, it is stored in a DatabaseFS in gzipped
-// form to save space and also to skip gzipping it later when we serve it to
-// the user's browser because it's already been pre-gzipped.
+// form to save space and also to save CPU cycles as we don't have to gzip
+// again when serving it later.
 func IsFulltextIndexed(filePath string) bool {
 	fileType, ok := AllowedFileTypes[path.Ext(filePath)]
 	if !ok {
