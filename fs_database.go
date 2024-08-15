@@ -1255,13 +1255,15 @@ func (fsys *DatabaseFS) Remove(name string) error {
 	if file.hasChildren {
 		return &fs.PathError{Op: "remove", Path: name, Err: syscall.ENOTEMPTY}
 	}
+	// Delete the underlying object from object storage.
 	fileType := AllowedFileTypes[path.Ext(name)]
 	if fileType.Has(AttributeObject) {
 		err = fsys.ObjectStorage.Delete(fsys.ctx, file.fileID.String()+path.Ext(file.filePath))
 		if err != nil {
-			return stacktrace.New(err)
+			fsys.Logger.Error(stacktrace.New(err).Error())
 		}
 	}
+	// Unpin the file.
 	_, err = sq.Exec(fsys.ctx, fsys.DB, sq.Query{
 		Dialect: fsys.Dialect,
 		Format:  "DELETE FROM pinned_file WHERE (SELECT file_id FROM files WHERE file_path = {name}) IN (parent_id, file_id)",
@@ -1340,16 +1342,15 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 	if !fs.ValidPath(name) || strings.Contains(name, "\\") || name == "." {
 		return &fs.PathError{Op: "removeall", Path: name, Err: fs.ErrInvalid}
 	}
-	// Find the objects for all the files we are about to delete.
+	// Delete all underlying objects from object storage. This is a best-effort operation, if any delete operation fails we just move on because we don't want one errant failure to affect the deletion of all other objects. At worst we get a bunch of
 	pattern := wildcardReplacer.Replace(name) + "/%"
 	extFilter := sq.Expr("1 <> 1")
 	if len(objectExts) > 0 {
-		// TODO: fix this! probably has bug.
 		var b strings.Builder
 		args := make([]any, 0, len(objectExts))
-		b.WriteString("(file_path LIKE '%.tgz' ESCAPE '\\'")
+		b.WriteString("(")
 		for _, ext := range objectExts {
-			if b.Len()>0{
+			if b.Len() > 0 {
 				b.WriteString(" OR ")
 			}
 			b.WriteString("file_path LIKE {} ESCAPE '\\'")
@@ -1407,6 +1408,7 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 		return err
 	}
 	waitGroup.Wait()
+	// Unpin the files.
 	_, err = sq.Exec(fsys.ctx, fsys.DB, sq.Query{
 		Dialect: fsys.Dialect,
 		Format: "DELETE FROM pinned_file WHERE EXISTS (" +
