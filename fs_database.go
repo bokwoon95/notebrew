@@ -104,10 +104,6 @@ type DatabaseFS struct {
 	// - "creationTime" => time.Time (sets the creationTime for files created by OpenWriter/Mkdir/MkdirAll)
 	//
 	// - "caption"      => string    (sets the caption for images created by OpenWriter)
-	//
-	// context.Context could have been used as the key-value store instead, but
-	// using context for storing multiple values would be quite slow compared
-	// to using a map.
 	values map[string]any
 }
 
@@ -538,6 +534,7 @@ type DatabaseFileWriter struct {
 	writeFailed bool
 }
 
+// OpenWriter implements the OpenWriter FS operation for DatabaseFS.
 func (fsys *DatabaseFS) OpenWriter(name string, _ fs.FileMode) (io.WriteCloser, error) {
 	err := fsys.ctx.Err()
 	if err != nil {
@@ -555,6 +552,7 @@ func (fsys *DatabaseFS) OpenWriter(name string, _ fs.FileMode) (io.WriteCloser, 
 	}
 	now := time.Now().UTC()
 	modTime := now
+	// TODO: change this to directly cast the result to a time.Time instead.
 	if value := fsys.values["modTime"]; value != nil {
 		if value, ok := value.(time.Time); ok {
 			modTime = value
