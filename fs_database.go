@@ -524,7 +524,7 @@ type DatabaseFileWriter struct {
 	// captions.
 	caption string
 
-	// objectStorageWriter will proxy all writes to the object in object storage.
+	// objectStorageWriter writes to the object in object storage.
 	objectStorageWriter *io.PipeWriter
 
 	// objectStorageResult holds the result of writing to object storage.
