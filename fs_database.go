@@ -1757,8 +1757,7 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 		return &fs.PathError{Op: "copy", Path: destName, Err: fs.ErrExist}
 	}
 	if !srcIsDir {
-		// If src file is not a directory, we can just copy one file and we are
-		// done.
+		// If src file is not a directory, just copy the file and we are done.
 		destFileID := NewID()
 		size, err := sq.FetchOne(fsys.ctx, fsys.DB, sq.Query{
 			Dialect: fsys.Dialect,
@@ -1844,7 +1843,7 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 	// If we reach here, that means src file is a directory and we need to copy
 	// files recursively.
 	//
-	// First grab a list of all files we need to copy so that we can generate
+	// First, grab a list of all files we need to copy so that we can generate
 	// new file IDs for their cloned versions.
 	cursor, err := sq.FetchCursor(fsys.ctx, fsys.DB, sq.Query{
 		Dialect: fsys.Dialect,
@@ -1869,15 +1868,13 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 		return err
 	}
 	defer cursor.Close()
+	// Then, generate a JSON array containing new file IDs (for the new files
+	// that will be copied). We will unmarshal this JSON payload on the
+	// database-side using dialect-specific SQL and join it with the existing
+	// files table in order to do a bulk cloning of files in one query.
 	var wg sync.WaitGroup
 	var totalSize int64
-	var items [][4]string // destFileID, destParentID, destParent, srcFilePath
-	// fileIDs stores the mapping of file paths to generated file IDs as we go.
-	// Because we ORDER BY file_path in the query, we are guaranteed to see a
-	// parent first before its children, which means by the time we get to a
-	// file its parent ID should already be in the map. The only exception is
-	// the first item we put in the map, whose parent ID has to be referenced
-	// from the files table by its parent file path.
+	var items [][4]string // [destFileID, destParentID, destParent, srcFilePath]
 	fileIDs := make(map[string]ID)
 	objectCtx, cancelObjectCtx := context.WithCancel(fsys.ctx)
 	defer cancelObjectCtx()
@@ -1892,6 +1889,9 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 		var item [4]string
 		item[0] = destFileID.String()
 		destParent := path.Dir(destFilePath)
+		// We are guaranteed to see a parent before its children, because we
+		// `ORDER BY file_path`. So a file's parent ID will always be in the
+		// map except for the very first file in the loop.
 		if destParentID, ok := fileIDs[destParent]; ok {
 			item[1] = destParentID.String()
 		} else {
@@ -1899,30 +1899,25 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 		}
 		item[3] = srcFile.FilePath
 		items = append(items, item)
-		if srcFile.IsDir {
-			// If the src file is a directory, we can stop here. We don't have
-			// to add the directory size to the total size (total size only
-			// includes files), we don't have to delete any underlying objects
-			// because directories have no underlying objects.
-			continue
-		}
-		totalSize += srcFile.Size
-		ext := path.Ext(srcFile.FilePath)
-		fileType := AllowedFileTypes[ext]
-		if fileType.Has(AttributeObject) {
-			wg.Add(1)
-			go func() {
-				defer func() {
-					if v := recover(); v != nil {
-						fsys.Logger.Error(stacktrace.New(fmt.Errorf("panic: %v", v)).Error())
+		if !srcFile.IsDir {
+			totalSize += srcFile.Size
+			ext := path.Ext(srcFile.FilePath)
+			fileType := AllowedFileTypes[ext]
+			if fileType.Has(AttributeObject) {
+				wg.Add(1)
+				go func() {
+					defer func() {
+						if v := recover(); v != nil {
+							fsys.Logger.Error(stacktrace.New(fmt.Errorf("panic: %v", v)).Error())
+						}
+					}()
+					defer wg.Done()
+					err := fsys.ObjectStorage.Copy(objectCtx, hex.EncodeToString(srcFile.FileID[:])+ext, hex.EncodeToString(destFileID[:])+ext)
+					if err != nil {
+						fsys.Logger.Error(stacktrace.New(err).Error())
 					}
 				}()
-				defer wg.Done()
-				err := fsys.ObjectStorage.Copy(objectCtx, hex.EncodeToString(srcFile.FileID[:])+ext, hex.EncodeToString(destFileID[:])+ext)
-				if err != nil {
-					fsys.Logger.Error(stacktrace.New(err).Error())
-				}
-			}()
+			}
 		}
 	}
 	err = cursor.Close()
@@ -2021,6 +2016,7 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 	default:
 		return fmt.Errorf("unsupported dialect %q", fsys.Dialect)
 	}
+	// Add the files' total size from the site's storage used.
 	if fsys.UpdateStorageUsed != nil {
 		var sitePrefix string
 		head, _, _ := strings.Cut(destName, "/")
@@ -2032,6 +2028,7 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 			return err
 		}
 	}
+	// Add the files' total size to all dest ancestor directories.
 	destAncestors := make([]string, 0, strings.Count(destName, "/"))
 	for dir := path.Dir(destName); dir != "."; dir = path.Dir(dir) {
 		destAncestors = append(destAncestors, dir)

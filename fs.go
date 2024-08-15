@@ -239,5 +239,6 @@ var (
 		slices.Sort(editableExts)
 		slices.Sort(imgExts)
 		slices.Sort(fontExts)
+		slices.Sort(objectExts)
 	})
 )
