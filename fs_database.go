@@ -2053,6 +2053,9 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 	return nil
 }
 
+// IsKeyViolation returns true if the provided errorCode matches the
+// dialect-specific code for representing a primary key/unique constraint
+// violation.
 func IsKeyViolation(dialect string, errorCode string) bool {
 	switch dialect {
 	case "sqlite":
@@ -2068,6 +2071,8 @@ func IsKeyViolation(dialect string, errorCode string) bool {
 	}
 }
 
+// IsForeignKeyViolation returns true if the provided errorCode matches the
+// dialect-specific code for representing a foreign key constraint violation.
 func IsForeignKeyViolation(dialect string, errorCode string) bool {
 	switch dialect {
 	case "sqlite":
