@@ -17,10 +17,10 @@ import (
 
 // DirectoryFSConfig holds the parameters needed to construct a DirectoryFS.
 type DirectoryFSConfig struct {
-	// RootDir is the root directory of the DirectoryFS.
+	// Root directory of the DirectoryFS.
 	RootDir string
 
-	// TempDir is the temp directory of the DirectoryFS.
+	// Temp directory of the DirectoryFS.
 	TempDir string
 }
 
