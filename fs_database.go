@@ -1643,13 +1643,17 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 	default:
 		return stacktrace.New(fmt.Errorf("unsupported dialect %q", fsys.Dialect))
 	}
+	err = tx.Commit()
+	if err != nil {
+		return stacktrace.New(err)
+	}
 	if path.Dir(oldName) != path.Dir(newName) {
 		oldAncestors := make([]string, 0, strings.Count(oldName, "/"))
 		for dir := path.Dir(oldName); dir != "."; dir = path.Dir(dir) {
 			oldAncestors = append(oldAncestors, dir)
 		}
 		if len(oldAncestors) > 0 {
-			_, err := sq.Exec(fsys.ctx, tx, sq.Query{
+			_, err := sq.Exec(fsys.ctx, fsys.DB, sq.Query{
 				Dialect: fsys.Dialect,
 				Format: "UPDATE files" +
 					" SET size = CASE WHEN coalesce(size, 0) + {delta} >= 0 THEN coalesce(size, 0) + {delta} ELSE 0 END" +
@@ -1669,7 +1673,7 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 			newAncestors = append(newAncestors, dir)
 		}
 		if len(newAncestors) > 0 {
-			_, err := sq.Exec(fsys.ctx, tx, sq.Query{
+			_, err := sq.Exec(fsys.ctx, fsys.DB, sq.Query{
 				Dialect: fsys.Dialect,
 				Format: "UPDATE files" +
 					" SET size = CASE WHEN coalesce(size, 0) + {delta} >= 0 THEN coalesce(size, 0) + {delta} ELSE 0 END" +
@@ -1684,10 +1688,6 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 				return stacktrace.New(err)
 			}
 		}
-	}
-	err = tx.Commit()
-	if err != nil {
-		return stacktrace.New(err)
 	}
 	return nil
 }
