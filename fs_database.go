@@ -1346,8 +1346,8 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 		var b strings.Builder
 		args := make([]any, 0, len(objectExts))
 		b.WriteString("(")
-		for _, ext := range objectExts {
-			if b.Len() > 0 {
+		for i, ext := range objectExts {
+			if i > 0 {
 				b.WriteString(" OR ")
 			}
 			b.WriteString("file_path LIKE {} ESCAPE '\\'")
