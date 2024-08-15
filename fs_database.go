@@ -14,7 +14,6 @@ import (
 	"log/slog"
 	"os"
 	"path"
-	"runtime/debug"
 	"strings"
 	"sync"
 	"syscall"
@@ -654,11 +653,7 @@ func (fsys *DatabaseFS) OpenWriter(name string, _ fs.FileMode) (io.WriteCloser, 
 		file.objectStorageWriter = pipeWriter
 		file.objectStorageResult = make(chan error, 1)
 		go func() {
-			defer func() {
-				if v := recover(); v != nil {
-					file.objectStorageResult <- stacktrace.New(fmt.Errorf("panic: %v", v))
-				}
-			}()
+			defer stacktrace.RecoverPanic(&err)
 			file.objectStorageResult <- fsys.ObjectStorage.Put(file.ctx, file.fileID.String()+path.Ext(file.filePath), pipeReader)
 		}()
 	} else {
@@ -863,11 +858,7 @@ func (file *DatabaseFileWriter) Close() error {
 			})
 			if err != nil {
 				go func() {
-					defer func() {
-						if v := recover(); v != nil {
-							file.logger.Error(stacktrace.New(fmt.Errorf("panic: %v", v)).Error())
-						}
-					}()
+					defer stacktrace.RecoverPanic(&err)
 					// This is a cleanup operation - don't pass in the file.ctx
 					// because file.ctx may be canceled and prevent the
 					// cleanup.
@@ -1262,10 +1253,6 @@ func (fsys *DatabaseFS) Remove(name string) error {
 	if fileType.Has(AttributeObject) {
 		err = fsys.ObjectStorage.Delete(fsys.ctx, file.fileID.String()+path.Ext(file.filePath))
 		if err != nil {
-			// We may want to change this, but ignore errors for now. Just
-			// because we failed to delete the object from object storage
-			// doesn't mean we should abandon deleting the file from the
-			// database -- the user *wants* it deleted.
 			fsys.Logger.Error(stacktrace.New(err).Error())
 		}
 	}
@@ -1409,10 +1396,6 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 			defer waitGroup.Done()
 			err := fsys.ObjectStorage.Delete(fsys.ctx, file.fileID.String()+path.Ext(file.filePath))
 			if err != nil {
-				// We may want to change this, but ignore errors for now. Just
-				// because we failed to delete the object from object storage
-				// doesn't mean we should abandon deleting the file from the
-				// database -- the user *wants* it deleted.
 				fsys.Logger.Error(stacktrace.New(err).Error())
 			}
 		}()
@@ -1889,6 +1872,12 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 	var wg sync.WaitGroup
 	var totalSize int64
 	var items [][4]string // destFileID, destParentID, destParent, srcFilePath
+	// fileIDs stores the mapping of file paths to generated file IDs as we go.
+	// Because we ORDER BY file_path in the query, we are guaranteed to see a
+	// parent first before its children, which means by the time we get to a
+	// file its parent ID should already be in the map. The only exception is
+	// the first item we put in the map, whose parent ID has to be referenced
+	// from the files table by its parent file path.
 	fileIDs := make(map[string]ID)
 	objectCtx, cancelObjectCtx := context.WithCancel(fsys.ctx)
 	defer cancelObjectCtx()
@@ -1911,6 +1900,10 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 		item[3] = srcFile.FilePath
 		items = append(items, item)
 		if srcFile.IsDir {
+			// If the src file is a directory, we can stop here. We don't have
+			// to add the directory size to the total size (total size only
+			// includes files), we don't have to delete any underlying objects
+			// because directories have no underlying objects.
 			continue
 		}
 		totalSize += srcFile.Size
@@ -1921,7 +1914,7 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 			go func() {
 				defer func() {
 					if v := recover(); v != nil {
-						fmt.Println("panic:\n" + string(debug.Stack()))
+						fsys.Logger.Error(stacktrace.New(fmt.Errorf("panic: %v", v)).Error())
 					}
 				}()
 				defer wg.Done()
