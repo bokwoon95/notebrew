@@ -403,17 +403,6 @@ func (file *DatabaseFile) Read(p []byte) (n int, err error) {
 	}
 }
 
-// emptyReader is a reader that always returns io.EOF when read i.e.
-// perpetually empty. It's used to provide a valid and non-nil reader to reset
-// gzip.Reader so it doesn't panic. We need to reset gzip.Reader before storing
-// it back in the gzipReaderPool so that it doesn't retain a reference to its
-// underlying reader and prevent it from being garbage collected.
-type emptyReader struct{}
-
-var empty = (*emptyReader)(nil)
-
-func (empty *emptyReader) Read(p []byte) (n int, err error) { return 0, io.EOF }
-
 // Close closes the DatabaseFile from reading.
 func (file *DatabaseFile) Close() error {
 	if file.info.isDir {
@@ -433,7 +422,7 @@ func (file *DatabaseFile) Close() error {
 			if file.gzipReader == nil {
 				return fs.ErrClosed
 			}
-			file.gzipReader.Reset(empty)
+			file.gzipReader.Reset(bytes.NewReader(nil))
 			gzipReaderPool.Put(file.gzipReader)
 			file.gzipReader = nil
 			if file.buf.Cap() <= maxPoolableBufferCapacity {
