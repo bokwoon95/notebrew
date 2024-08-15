@@ -459,30 +459,83 @@ func (file *DatabaseFile) Close() error {
 	return nil
 }
 
+// DatabaseFileWriter represents a writable file on a DatabaseFS.
 type DatabaseFileWriter struct {
-	db                *sql.DB
-	dialect           string
-	objectStorage     ObjectStorage
-	logger            *slog.Logger
+	// database connection.
+	db *sql.DB
+
+	// dialect of the database.
+	dialect string
+
+	// objectStorage is only used for deleting the object from object storage
+	// in case the database write fails (we don't want a bunch of partial
+	// writes to bloat the object storage with objects that have no database
+	// record).
+	objectStorage ObjectStorage
+
+	// logger is used for reporting errors that cannot be handled and are
+	// thrown away.
+	logger *slog.Logger
+
+	// updateStorageUsed is used to update the storage used by the site after
+	// the file has been fully written.
 	updateStorageUsed func(ctx context.Context, siteName string, delta int64) error
 
-	ctx                 context.Context
-	fileType            FileType
-	isFulltextIndexed   bool
-	exists              bool
-	fileID              ID
-	parentID            ID
-	filePath            string
-	initialSize         int64
-	size                int64
-	buf                 *bytes.Buffer
-	gzipWriter          *gzip.Writer
-	modTime             time.Time
-	creationTime        time.Time
-	caption             string
+	// ctx provides the context of all operations called on the DatabaseFileWriter.
+	ctx context.Context
+
+	// fileType of file.
+	fileType FileType
+
+	// Whether the file is fulltext indexed.
+	isFulltextIndexed bool
+
+	// Whether we are writing to an existing file or creating a new one.
+	exists bool
+
+	// fileID of the file.
+	fileID ID
+
+	// fileID of the file's parent.
+	parentID ID
+
+	// filePath of the file.
+	filePath string
+
+	// The file's initial size (if it exists).
+	initialSize int64
+
+	// The file's size after being written.
+	size int64
+
+	// buf holds the raw bytes of the DatabaseFileWriter. It may have first
+	// gone through the gzipWriter, depending on whether the file is gzippable
+	// and is not fulltext indexed.
+	buf *bytes.Buffer
+
+	// If the file is gzippable and is not fulltext indexed, all writes to the
+	// file first go through the gzipWriter before going into the buffer.
+	gzipWriter *gzip.Writer
+
+	// The value of the modTime to be set for the file.
+	modTime time.Time
+
+	// The value of the creationTime to be set for the file.
+	creationTime time.Time
+
+	// The value of the caption to be set for the image file. Images are stored
+	// in object storage so we can use the database's text field for storing
+	// captions.
+	caption string
+
+	// objectStorageWriter will proxy all writes to the object in object storage.
 	objectStorageWriter *io.PipeWriter
+
+	// objectStorageResult records the result of writing to object storage.
 	objectStorageResult chan error
-	writeFailed         bool
+
+	// writeFailed records if any writes to the DatabaseFileWriter failed.
+	writeFailed bool
 }
 
 func (fsys *DatabaseFS) OpenWriter(name string, _ fs.FileMode) (io.WriteCloser, error) {
@@ -623,7 +676,6 @@ func (fsys *DatabaseFS) OpenWriter(name string, _ fs.FileMode) (io.WriteCloser, 
 				}
 			}()
 			file.objectStorageResult <- fsys.ObjectStorage.Put(file.ctx, file.fileID.String()+path.Ext(file.filePath), pipeReader)
-			close(file.objectStorageResult)
 		}()
 	} else {
 		if file.fileType.Has(AttributeGzippable) && !file.isFulltextIndexed {
