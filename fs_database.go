@@ -567,10 +567,11 @@ func (fsys *DatabaseFS) OpenWriter(name string, _ fs.FileMode) (io.WriteCloser, 
 		creationTime:      creationTime,
 		caption:           caption,
 	}
-	// If parentDir is the root directory, just fetch the file information.
-	// Otherwise fetch both the parent and file information.
 	parentDir := path.Dir(file.filePath)
 	if parentDir == "." {
+		// If parentDir is the root directory ".", it doesn't exist in the
+		// database (it exists implicitly) so we don't have to fetch the
+		// parentID.
 		result, err := sq.FetchOne(fsys.ctx, fsys.DB, sq.Query{
 			Dialect: fsys.Dialect,
 			Format:  "SELECT {*} FROM files WHERE file_path = {filePath}",
