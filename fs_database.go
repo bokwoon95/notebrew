@@ -922,6 +922,7 @@ func (file *DatabaseFileWriter) Close() error {
 	if delta == 0 {
 		return nil
 	}
+	// Update the site's storage used.
 	if file.updateStorageUsed != nil {
 		var sitePrefix string
 		head, _, _ := strings.Cut(file.filePath, "/")
@@ -933,6 +934,7 @@ func (file *DatabaseFileWriter) Close() error {
 			return stacktrace.New(err)
 		}
 	}
+	// Update the size of all ancestor directories.
 	ancestors := make([]string, 0, strings.Count(file.filePath, "/"))
 	for dir := path.Dir(file.filePath); dir != "."; dir = path.Dir(dir) {
 		ancestors = append(ancestors, dir)
@@ -1260,10 +1262,14 @@ func (fsys *DatabaseFS) Remove(name string) error {
 	if fileType.Has(AttributeObject) {
 		err = fsys.ObjectStorage.Delete(fsys.ctx, file.fileID.String()+path.Ext(file.filePath))
 		if err != nil {
+			// We may want to change this, but ignore errors for now. Just
+			// because we failed to delete the object from object storage
+			// doesn't mean we should abandon deleting the file from the
+			// database -- the user *wants* it deleted.
 			fsys.Logger.Error(stacktrace.New(err).Error())
 		}
 	}
-	// Unpin the file.
+	// Delete any pinned files.
 	_, err = sq.Exec(fsys.ctx, fsys.DB, sq.Query{
 		Dialect: fsys.Dialect,
 		Format:  "DELETE FROM pinned_file WHERE (SELECT file_id FROM files WHERE file_path = {name}) IN (parent_id, file_id)",
@@ -1274,6 +1280,7 @@ func (fsys *DatabaseFS) Remove(name string) error {
 	if err != nil {
 		return stacktrace.New(err)
 	}
+	// Get the size of the file being removed.
 	size, err := sq.FetchOne(fsys.ctx, fsys.DB, sq.Query{
 		Dialect: fsys.Dialect,
 		Format:  "SELECT {*} FROM files WHERE file_path = {name}",
@@ -1286,6 +1293,7 @@ func (fsys *DatabaseFS) Remove(name string) error {
 	if err != nil {
 		return stacktrace.New(err)
 	}
+	// Delete the file.
 	_, err = sq.Exec(fsys.ctx, fsys.DB, sq.Query{
 		Dialect: fsys.Dialect,
 		Format:  "DELETE FROM files WHERE file_path = {name}",
@@ -1299,6 +1307,7 @@ func (fsys *DatabaseFS) Remove(name string) error {
 	if file.isDir {
 		return nil
 	}
+	// Subtract the file's size from the site's storage used.
 	if fsys.UpdateStorageUsed != nil {
 		var sitePrefix string
 		head, _, _ := strings.Cut(name, "/")
@@ -1310,6 +1319,7 @@ func (fsys *DatabaseFS) Remove(name string) error {
 			return stacktrace.New(err)
 		}
 	}
+	// Subtract the file size from all ancestor directories.
 	ancestors := make([]string, 0, strings.Count(name, "/"))
 	for dir := path.Dir(name); dir != "."; dir = path.Dir(dir) {
 		ancestors = append(ancestors, dir)
@@ -1342,7 +1352,7 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 	if !fs.ValidPath(name) || strings.Contains(name, "\\") || name == "." {
 		return &fs.PathError{Op: "removeall", Path: name, Err: fs.ErrInvalid}
 	}
-	// Delete all underlying objects from object storage. This is a best-effort operation, if any delete operation fails we just move on because we don't want one errant failure to affect the deletion of all other objects. At worst we get a bunch of
+	// Delete the underlying objects from object storage.
 	pattern := wildcardReplacer.Replace(name) + "/%"
 	extFilter := sq.Expr("1 <> 1")
 	if len(objectExts) > 0 {
@@ -1399,6 +1409,10 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 			defer waitGroup.Done()
 			err := fsys.ObjectStorage.Delete(fsys.ctx, file.fileID.String()+path.Ext(file.filePath))
 			if err != nil {
+				// We may want to change this, but ignore errors for now. Just
+				// because we failed to delete the object from object storage
+				// doesn't mean we should abandon deleting the file from the
+				// database -- the user *wants* it deleted.
 				fsys.Logger.Error(stacktrace.New(err).Error())
 			}
 		}()
@@ -1408,7 +1422,7 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 		return err
 	}
 	waitGroup.Wait()
-	// Unpin the files.
+	// Delete any pinned files.
 	_, err = sq.Exec(fsys.ctx, fsys.DB, sq.Query{
 		Dialect: fsys.Dialect,
 		Format: "DELETE FROM pinned_file WHERE EXISTS (" +
@@ -1422,6 +1436,7 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 			sq.StringParam("pattern", pattern),
 		},
 	})
+	// Get the total size of the files being removed.
 	totalSize, err := sq.FetchOne(fsys.ctx, fsys.DB, sq.Query{
 		Dialect: fsys.Dialect,
 		Format:  "SELECT {*} FROM files WHERE file_path = {name} OR file_path LIKE {pattern} ESCAPE '\\'",
@@ -1435,6 +1450,7 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 	if err != nil {
 		return stacktrace.New(err)
 	}
+	// Delete the files.
 	_, err = sq.Exec(fsys.ctx, fsys.DB, sq.Query{
 		Dialect: fsys.Dialect,
 		Format:  "DELETE FROM files WHERE file_path = {name} OR file_path LIKE {pattern} ESCAPE '\\'",
@@ -1446,6 +1462,7 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 	if err != nil {
 		return stacktrace.New(err)
 	}
+	// Subtract the files' total size from the site's storage used.
 	if fsys.UpdateStorageUsed != nil {
 		var sitePrefix string
 		head, _, _ := strings.Cut(name, "/")
@@ -1457,6 +1474,7 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 			return stacktrace.New(err)
 		}
 	}
+	// Subtract the files' total size from all ancestor directories.
 	ancestors := make([]string, 0, strings.Count(name, "/"))
 	for dir := path.Dir(name); dir != "."; dir = path.Dir(dir) {
 		ancestors = append(ancestors, dir)
@@ -1480,6 +1498,7 @@ func (fsys *DatabaseFS) RemoveAll(name string) error {
 	return nil
 }
 
+// Rename implements the Rename FS operation for DatabaseFS.
 func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 	err := fsys.ctx.Err()
 	if err != nil {
@@ -1491,6 +1510,7 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 	if !fs.ValidPath(newName) || strings.Contains(newName, "\\") {
 		return &fs.PathError{Op: "rename", Path: newName, Err: fs.ErrInvalid}
 	}
+	// newName must not exist.
 	exists, err := sq.FetchExists(fsys.ctx, fsys.DB, sq.Query{
 		Dialect: fsys.Dialect,
 		Format:  "SELECT 1 FROM files WHERE file_path = {newName}",
@@ -1501,6 +1521,7 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 	if exists {
 		return &fs.PathError{Op: "rename", Path: newName, Err: fs.ErrExist}
 	}
+	// totalSize of the files being renamed/moved.
 	var totalSize int64
 	tx, err := fsys.DB.BeginTx(fsys.ctx, nil)
 	if err != nil {
@@ -1513,6 +1534,7 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 		if path.Dir(oldName) != path.Dir(newName) {
 			reparent = sq.Expr(", parent_id = (SELECT file_id FROM files WHERE file_path = {})", path.Dir(newName))
 		}
+		// Rename the file, retrieving the file size at the same time.
 		result, err := sq.FetchOne(fsys.ctx, tx, sq.Query{
 			Dialect: fsys.Dialect,
 			Format:  "UPDATE files SET file_path = {newName}, mod_time = {modTime}{reparent} WHERE file_path = {oldName} RETURNING {*}",
@@ -1537,6 +1559,9 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 			return stacktrace.New(err)
 		}
 		if result.isDir {
+			// If the file is a directory, rename the directory prefix for all
+			// descendants. Retrieve the descendants' total size at the same
+			// time.
 			cursor, err := sq.FetchCursor(fsys.ctx, tx, sq.Query{
 				Dialect: fsys.Dialect,
 				Format:  "UPDATE files SET file_path = {filePath}, mod_time = {modTime} WHERE file_path LIKE {pattern} ESCAPE '\\' RETURNING {*}",
@@ -1570,6 +1595,7 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 			}
 		}
 	case "mysql":
+		// Retrieve the file size.
 		result, err := sq.FetchOne(fsys.ctx, tx, sq.Query{
 			Dialect: fsys.Dialect,
 			Format:  "SELECT {*} FROM files WHERE file_path = {oldName}",
@@ -1590,6 +1616,7 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 			}
 			return stacktrace.New(err)
 		}
+		// Rename the file.
 		var reparent sq.Expression
 		if path.Dir(oldName) != path.Dir(newName) {
 			reparent = sq.Expr(", parent_id = (SELECT file_id FROM files WHERE file_path = {})", path.Dir(newName))
@@ -1608,6 +1635,8 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 			return stacktrace.New(err)
 		}
 		if result.isDir {
+			// If the file is a directory, retrieve the descendants' total
+			// size.
 			totalSize, err = sq.FetchOne(fsys.ctx, tx, sq.Query{
 				Dialect: fsys.Dialect,
 				Format:  "SELECT {*} FROM files WHERE file_path LIKE {pattern} ESCAPE '\\'",
@@ -1617,6 +1646,7 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 			}, func(row *sq.Row) int64 {
 				return row.Int64("sum(CASE WHEN is_dir OR size IS NULL THEN 0 ELSE size END)")
 			})
+			// Rename the directory prefix for all descendants.
 			_, err = sq.Exec(fsys.ctx, tx, sq.Query{
 				Dialect: fsys.Dialect,
 				Format:  "UPDATE files SET file_path = {filePath}, mod_time = {modTime} WHERE file_path LIKE {pattern} ESCAPE '\\'",
@@ -1642,7 +1672,10 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 	if err != nil {
 		return stacktrace.New(err)
 	}
+	// If the files changed parents, need to update the size of all ancestor
+	// directories accordingly.
 	if path.Dir(oldName) != path.Dir(newName) {
+		// Subtract the files' total size from all old ancestor directories.
 		oldAncestors := make([]string, 0, strings.Count(oldName, "/"))
 		for dir := path.Dir(oldName); dir != "."; dir = path.Dir(dir) {
 			oldAncestors = append(oldAncestors, dir)
@@ -1663,6 +1696,7 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 				return stacktrace.New(err)
 			}
 		}
+		// Add the files' total size to all new ancestor directories.
 		newAncestors := make([]string, 0, strings.Count(newName, "/"))
 		for dir := path.Dir(newName); dir != "."; dir = path.Dir(dir) {
 			newAncestors = append(newAncestors, dir)
@@ -1687,6 +1721,7 @@ func (fsys *DatabaseFS) Rename(oldName, newName string) error {
 	return nil
 }
 
+// Copy implements the Copy FS operation for DatabaseFS.
 func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 	err := fsys.ctx.Err()
 	if err != nil {
@@ -1730,13 +1765,17 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 			destExists = true
 		}
 	}
+	// srcName must exist.
 	if srcFileID.IsZero() {
 		return fs.ErrNotExist
 	}
+	// destName must not exist.
 	if destExists {
 		return &fs.PathError{Op: "copy", Path: destName, Err: fs.ErrExist}
 	}
 	if !srcIsDir {
+		// If src file is not a directory, we can just copy one file and we are
+		// done.
 		destFileID := NewID()
 		size, err := sq.FetchOne(fsys.ctx, fsys.DB, sq.Query{
 			Dialect: fsys.Dialect,
@@ -1784,6 +1823,7 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 				fsys.Logger.Error(stacktrace.New(err).Error())
 			}
 		}
+		// Add the file size to the site's storage used.
 		if fsys.UpdateStorageUsed != nil {
 			var sitePrefix string
 			head, _, _ := strings.Cut(srcName, "/")
@@ -1795,6 +1835,7 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 				return stacktrace.New(err)
 			}
 		}
+		// Add the file size to all dest ancestor directories.
 		destAncestors := make([]string, 0, strings.Count(destName, "/"))
 		for dir := path.Dir(destName); dir != "."; dir = path.Dir(dir) {
 			destAncestors = append(destAncestors, dir)
@@ -1817,6 +1858,11 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 		}
 		return nil
 	}
+	// If we reach here, that means src file is a directory and we need to copy
+	// files recursively.
+	//
+	// First grab a list of all files we need to copy so that we can generate
+	// new file IDs for their cloned versions.
 	cursor, err := sq.FetchCursor(fsys.ctx, fsys.DB, sq.Query{
 		Dialect: fsys.Dialect,
 		Format:  "SELECT {*} FROM files WHERE file_path = {srcName} OR file_path LIKE {pattern} ESCAPE '\\' ORDER BY file_path",
