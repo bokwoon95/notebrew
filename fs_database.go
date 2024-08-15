@@ -567,6 +567,7 @@ func (fsys *DatabaseFS) OpenWriter(name string, _ fs.FileMode) (io.WriteCloser, 
 		creationTime:      creationTime,
 		caption:           caption,
 	}
+	// Get the fileID as well as the parentID (if the file exists).
 	parentDir := path.Dir(file.filePath)
 	if parentDir == "." {
 		// If parentDir is the root directory ".", it doesn't exist in the
@@ -647,6 +648,7 @@ func (fsys *DatabaseFS) OpenWriter(name string, _ fs.FileMode) (io.WriteCloser, 
 			file.fileID = NewID()
 		}
 	}
+	// Prepare the underlying writers.
 	if fileType.Has(AttributeObject) {
 		pipeReader, pipeWriter := io.Pipe()
 		file.objectStorageWriter = pipeWriter
@@ -671,6 +673,9 @@ func (fsys *DatabaseFS) OpenWriter(name string, _ fs.FileMode) (io.WriteCloser, 
 	return file, nil
 }
 
+// Write writes len(b) bytes from b to the DatabaseFileWriter. It returns the
+// number of bytes written and an error, if any. Write returns a non-nil error
+// when n != len(b).
 func (file *DatabaseFileWriter) Write(p []byte) (n int, err error) {
 	err = file.ctx.Err()
 	if err != nil {
@@ -702,6 +707,7 @@ func (file *DatabaseFileWriter) Write(p []byte) (n int, err error) {
 	return n, nil
 }
 
+// ReadFrom implements io.ReaderFrom.
 func (file *DatabaseFileWriter) ReadFrom(r io.Reader) (n int64, err error) {
 	err = file.ctx.Err()
 	if err != nil {
@@ -733,6 +739,8 @@ func (file *DatabaseFileWriter) ReadFrom(r io.Reader) (n int64, err error) {
 	return n, nil
 }
 
+// Close saves the contents of the DatabaseFileWriter into the database and
+// closes the DatabaseFileWriter.
 func (file *DatabaseFileWriter) Close() error {
 	if file.fileType.Has(AttributeObject) {
 		if file.objectStorageWriter == nil {
@@ -948,6 +956,7 @@ func (file *DatabaseFileWriter) Close() error {
 	return nil
 }
 
+// ReadDir implements the ReadDir FS operation for DatabaseFS.
 func (fsys *DatabaseFS) ReadDir(name string) ([]fs.DirEntry, error) {
 	err := fsys.ctx.Err()
 	if err != nil {
@@ -990,6 +999,7 @@ func (fsys *DatabaseFS) ReadDir(name string) ([]fs.DirEntry, error) {
 	return dirEntries, nil
 }
 
+// Mkdir implements the Mkdir FS operation for DatabaseFS.
 func (fsys *DatabaseFS) Mkdir(name string, _ fs.FileMode) error {
 	err := fsys.ctx.Err()
 	if err != nil {
