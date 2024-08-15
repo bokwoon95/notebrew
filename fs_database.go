@@ -527,7 +527,8 @@ type DatabaseFileWriter struct {
 	// objectStorageWriter writes to the object in object storage.
 	objectStorageWriter *io.PipeWriter
 
-	// objectStorageResult holds the result of writing to object storage.
+	// objectStorageResult holds the result of writing to the object in object
+	// storage.
 	objectStorageResult chan error
 
 	// writeFailed records if any writes to the DatabaseFileWriter failed.
