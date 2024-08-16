@@ -65,6 +65,7 @@ type ReplicatedFS struct {
 	baseCtxWaitGroup *sync.WaitGroup
 }
 
+// NewReplicatedFS constructs a new ReplicatedFS.
 func NewReplicatedFS(config ReplicatedFSConfig) (*ReplicatedFS, error) {
 	baseCtx, baseCtxCancel := context.WithCancel(context.Background())
 	replicatedFS := &ReplicatedFS{
@@ -80,6 +81,7 @@ func NewReplicatedFS(config ReplicatedFSConfig) (*ReplicatedFS, error) {
 	return replicatedFS, nil
 }
 
+// As calls the As(any) bool method on the leader FS if it exists.
 func (fsys *ReplicatedFS) As(target any) bool {
 	switch v := fsys.Leader.(type) {
 	case interface{ As(any) bool }:
