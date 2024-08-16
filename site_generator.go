@@ -40,17 +40,38 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// SiteGenerator is used to generate pages and posts for a particular site.
 type SiteGenerator struct {
-	Site               Site
-	fsys               FS
-	sitePrefix         string
-	contentDomain      string
+	// Site information.
+	Site Site
+
+	// fsys is the FS to generate pages and posts in.
+	fsys FS
+
+	// sitePrefix is the site prefix.
+	sitePrefix string
+
+	// contentDomain is the domain that the site's generated content is served on.
+	contentDomain string
+
+	// contentDomainHTTPS indicates whether the content domain is served over
+	// HTTPS.
 	contentDomainHTTPS bool
-	cdnDomain          string
-	port               int
-	markdown           goldmark.Markdown
-	funcMap            map[string]any
-	mutex              sync.RWMutex
+
+	// cdnDomain is the domain of the CDN that is used for hosting images.
+	cdnDomain string
+
+	// markdown is the goldmark parser and renderer used to generate from the
+	// site's markdown files.
+	markdown goldmark.Markdown
+
+	// funcMap stores the template funcMap used by the site's templates.
+	funcMap map[string]any
+
+	// mutex is used to guard access to templateCache, templateInProgress and
+	// imgFileIDs.
+	mutex sync.RWMutex
+
 	templateCache      map[string]*template.Template
 	templateInProgress map[string]chan struct{}
 	imgFileIDs         map[string]ID
