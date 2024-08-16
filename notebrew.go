@@ -82,26 +82,22 @@ type Notebrew struct {
 
 	// CDNDomain is the domain of the CDN that notebrew is using to host its
 	// images. Examples: cdn.nbrew.net, nbrewcdn.net.
-	//
-	// If empty, it means that notebrew is not using a CDN.
 	CDNDomain string
 
-	// ImgCmd is the command (must reside in $PATH) used to optimize images for
-	// the web before they are saved to the FS. Images in the notes folder are
-	// never optimized as they are not expected to be served over the web. This
-	// also serves as an a escape hatch for users who wish to upload their
-	// images without any web optimization, they can upload to the notes folder
-	// first.
+	// ImgCmd is the command (must reside in $PATH) used to preprocess images
+	// for the web before they are saved to the FS. Images in the notes folder
+	// are never prerpocessed and are uploaded as-is. This serves as an a
+	// escape hatch for users who wish to upload their images without any image
+	// preprocessing, as they can upload images to the notes folder first
+	// before moving it elsewhere.
 	//
-	// It expects arguments in the form of `<ImgCmd> $INPUT_PATH $OUTPUT_PATH`,
-	// where $INPUT_PATH is the input path to the raw image and $OUTPUT_PATH is
-	// output path where ImgCmd should dump the optimized image.
-	//
-	// If empty, it means notebrew is not using an ImgCmd and will save images
-	// directly to the FS.
+	// ImgCmd should take in arguments in the form of `<ImgCmd> $INPUT_PATH
+	// $OUTPUT_PATH`, where $INPUT_PATH is the input path to the raw image and
+	// $OUTPUT_PATH is output path where ImgCmd should save the preprocessed
+	// image.
 	ImgCmd string
 
-	// Port is port that notebrew is listening on.
+	// (Required) Port is port that notebrew is listening on.
 	Port int
 
 	// IP4 is the IPv4 address of the current machine, if notebrew is currently
@@ -153,10 +149,10 @@ type Notebrew struct {
 	// emails.
 	Mailer *Mailer
 
-	// The default value for SMTP MAIL FROM instruction.
+	// The default value for the SMTP MAIL FROM instruction.
 	MailFrom string
 
-	// The default value for SMTP Reply-To header.
+	// The default value for the SMTP Reply-To header.
 	ReplyTo string
 
 	// Proxy configuration.
@@ -172,6 +168,8 @@ type Notebrew struct {
 		ProxyIPs map[netip.Addr]struct{}
 	}
 
+	// DNS provider (required for using wildcard certificates with
+	// LetsEncrypt).
 	DNSProvider interface {
 		libdns.RecordAppender
 		libdns.RecordDeleter
@@ -179,18 +177,31 @@ type Notebrew struct {
 		libdns.RecordSetter
 	}
 
+	// CertStorage is the magic (certmagic) that automatically provisions SSL
+	// certificates for notebrew.
 	CertStorage certmagic.Storage
 
+	// ContentSecurityPolicy is the Content-Security-Policy HTTP header set for
+	// every HTML response served on the CMS domain.
 	ContentSecurityPolicy string
 
+	// Logger is used for reporting errors that cannot be handled and are
+	// thrown away.
 	Logger *slog.Logger
 
+	// MaxMindDBReader is the maxmind database reader used to reolve IP
+	// addresses to their countries using a maxmind GeoIP database.
 	MaxMindDBReader *maxminddb.Reader
 
-	// baseCtx is associated with this struct. When Close() is called, the baseCtx is
-	// canceled.
-	baseCtx          context.Context
-	baseCtxCancel    func()
+	// baseCtx is the base context of the notebrew instance.
+	baseCtx context.Context
+
+	// baseCtxCancel cancels the base context.
+	baseCtxCancel func()
+
+	// baseCtxWaitGroup tracks the number of background jobs spawned by the
+	// notebrew instance. Each background job should take in the base context,
+	// and should should initiate shutdown when the base context is canceled.
 	baseCtxWaitGroup sync.WaitGroup
 }
 
