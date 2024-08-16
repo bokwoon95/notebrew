@@ -205,6 +205,8 @@ type Notebrew struct {
 	baseCtxWaitGroup sync.WaitGroup
 }
 
+// New returns a new instance of Notebrew. Each field within it still needs to
+// be manually configured.
 func New() *Notebrew {
 	populateExts()
 	baseCtx, baseCtxCancel := context.WithCancel(context.Background())
@@ -215,6 +217,8 @@ func New() *Notebrew {
 	return nbrew
 }
 
+// Close shuts down the notebrew instance as well as any background jobs it may
+// have spawned.
 func (nbrew *Notebrew) Close() error {
 	nbrew.baseCtxCancel()
 	defer nbrew.baseCtxWaitGroup.Wait()
@@ -236,20 +240,40 @@ func (nbrew *Notebrew) Close() error {
 	return nil
 }
 
+// User represents a user in the users table.
 type User struct {
-	UserID                ID
-	Username              string
-	Email                 string
+	// UserID uniquely identifies a user. It cannot be change.
+	UserID ID
+
+	// Username uniquely identifies a user. It can be changed.
+	Username string
+
+	// Email uniquely identifies a user. It can be changed.
+	Email string
+
+	// TimezoneOffsetSeconds represents a user's preferred timezone offset in
+	// seconds.
 	TimezoneOffsetSeconds int
-	DisableReason         string
-	SiteLimit             int64
-	StorageLimit          int64
+
+	// Is not empty, DisableReason is the reason why the user's account is
+	// marked as disabled.
+	DisableReason string
+
+	// SiteLimit is the limit on the number of sites the user can create.
+	SiteLimit int64
+
+	// StorageLimit is the limit on the amount of storage the user can use.
+	StorageLimit int64
 }
 
 type contextKey struct{}
 
+// LoggerKey is the key used by notebrew for setting and getting a logger from
+// the request context.
 var LoggerKey = &contextKey{}
 
+// GetLogger is a syntactic sugar operation for getting a request-specific
+// logger from the context, or else it returns the default logger.
 func (nbrew *Notebrew) GetLogger(ctx context.Context) *slog.Logger {
 	if logger, ok := ctx.Value(LoggerKey).(*slog.Logger); ok {
 		return logger
@@ -270,7 +294,7 @@ func (nbrew *Notebrew) SetFlashSession(w http.ResponseWriter, r *http.Request, v
 	encoder.SetEscapeHTML(false)
 	err := encoder.Encode(&value)
 	if err != nil {
-		return fmt.Errorf("marshaling JSON: %w", err)
+		return stacktrace.New(err)
 	}
 	cookie := &http.Cookie{
 		Path:     "/",
@@ -289,7 +313,7 @@ func (nbrew *Notebrew) SetFlashSession(w http.ResponseWriter, r *http.Request, v
 		binary.BigEndian.PutUint64(flashTokenBytes[:8], uint64(time.Now().Unix()))
 		_, err := rand.Read(flashTokenBytes[8:])
 		if err != nil {
-			return fmt.Errorf("reading rand: %w", err)
+			return stacktrace.New(err)
 		}
 		var flashTokenHash [8 + blake2b.Size256]byte
 		checksum := blake2b.Sum256(flashTokenBytes[8:])
@@ -304,7 +328,7 @@ func (nbrew *Notebrew) SetFlashSession(w http.ResponseWriter, r *http.Request, v
 			},
 		})
 		if err != nil {
-			return fmt.Errorf("flash: %w", err)
+			return stacktrace.New(err)
 		}
 		cookie.Value = strings.TrimLeft(hex.EncodeToString(flashTokenBytes[:]), "0")
 	}
@@ -363,7 +387,7 @@ func (nbrew *Notebrew) GetFlashSession(w http.ResponseWriter, r *http.Request, v
 				if errors.Is(err, sql.ErrNoRows) {
 					return false, nil
 				}
-				return false, err
+				return false, stacktrace.New(err)
 			}
 		default:
 			data, err = sq.FetchOne(r.Context(), nbrew.DB, sq.Query{
@@ -379,7 +403,7 @@ func (nbrew *Notebrew) GetFlashSession(w http.ResponseWriter, r *http.Request, v
 				if errors.Is(err, sql.ErrNoRows) {
 					return false, nil
 				}
-				return false, err
+				return false, stacktrace.New(err)
 			}
 			_, err = sq.Exec(r.Context(), nbrew.DB, sq.Query{
 				Dialect: nbrew.Dialect,
@@ -389,14 +413,14 @@ func (nbrew *Notebrew) GetFlashSession(w http.ResponseWriter, r *http.Request, v
 				},
 			})
 			if err != nil {
-				return false, err
+				return false, stacktrace.New(err)
 			}
 		}
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	err = decoder.Decode(valuePtr)
 	if err != nil {
-		return true, err
+		return true, stacktrace.New(err)
 	}
 	return true, nil
 }
@@ -1072,7 +1096,7 @@ func ServeFile(w http.ResponseWriter, r *http.Request, name string, size int64, 
 				if !ok {
 					logger = slog.Default()
 				}
-				logger.Error(err.Error())
+				logger.Error(stacktrace.New(err).Error())
 				http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 				return
 			}
@@ -1082,7 +1106,7 @@ func ServeFile(w http.ResponseWriter, r *http.Request, name string, size int64, 
 				if !ok {
 					logger = slog.Default()
 				}
-				logger.Error(err.Error())
+				logger.Error(stacktrace.New(err).Error())
 				http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 				return
 			}
@@ -1136,7 +1160,7 @@ func ServeFile(w http.ResponseWriter, r *http.Request, name string, size int64, 
 				if !ok {
 					logger = slog.Default()
 				}
-				logger.Error(err.Error())
+				logger.Error(stacktrace.New(err).Error())
 				http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 				return
 			}
@@ -1186,7 +1210,7 @@ func ServeFile(w http.ResponseWriter, r *http.Request, name string, size int64, 
 			if !ok {
 				logger = slog.Default()
 			}
-			logger.Error(err.Error())
+			logger.Error(stacktrace.New(err).Error())
 			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -1196,7 +1220,7 @@ func ServeFile(w http.ResponseWriter, r *http.Request, name string, size int64, 
 			if !ok {
 				logger = slog.Default()
 			}
-			logger.Error(err.Error())
+			logger.Error(stacktrace.New(err).Error())
 			http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 			return
 		}
