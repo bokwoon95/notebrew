@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>Reset theme</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if referer }}
+<div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+{{- else }}
+<div><a href='/files/'>&larr; back</a></div>
+{{- end }}
+<h2 class='ma0 b'>Reset theme</h2>
+{{- if $.Error }}
+<div role='alert' class='w-100 br2 ph3 pv2 ba alert'>
+  <div>{{ $.Error }}</div>
+</div>
+{{- end }}
+<form method='post' data-prevent-double-submit>
+  <fieldset>
+    <legend><h2 class='mv0 mh2'>pages</h2></legend>
+    <label class='flex flex-wrap items-center pointer mv2'>
+      <input type='checkbox' name='resetIndexHTML' value='true' class='pointer' checked>
+      <span class='ml2'>reset index.html</span>
+    </label>
+    <label class='flex flex-wrap items-center pointer mv2'>
+      <input type='checkbox' name='reset404HTML' value='true' class='pointer' checked>
+      <span class='ml2'>reset 404.html</span>
+    </label>
+  </fieldset>
+  <fieldset>
+    <legend><h2 class='mv0 mh2'>posts</h2></legend>
+    <label class='flex flex-wrap items-center pointer mv2'>
+      <input type='checkbox' name='resetPostHTML' value='true' class='pointer' checked>
+      <span class='ml2'>reset post.html</span>
+    </label>
+    <label class='flex flex-wrap items-center pointer mv2'>
+      <input type='checkbox' name='resetPostListHTML' value='true' class='pointer' checked>
+      <span class='ml2'>reset postlist.html</span>
+    </label>
+    <label class='flex flex-wrap items-center pointer mv2'>
+      <input type='radio' name='forAllCategories' value='true' class='pointer' checked>
+      <span class='ml2'>for all categories</span>
+    </label>
+    <label class='flex flex-wrap items-center pointer mv2'>
+      <input id='notForAllCategories' type='radio' name='forAllCategories' value='false' class='pointer'>
+      <span class='ml2'>for category</span>
+      <select name='forCategory' class='ml2' data-check-on-focus='#notForAllCategories'>
+        {{- range $category := $.Categories }}
+        <option value='{{ $category }}'>{{ if $category }}{{ $category }}{{ else }}&lt;default&gt;{{ end }}</option>
+        {{- end }}
+      </select>
+    </label>
+  </fieldset>
+  <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>reset theme</button>
+</form>

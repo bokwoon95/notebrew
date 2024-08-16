@@ -1,0 +1,75 @@
+<style>
+  html { max-width: 80ch; padding: 2rem 0.5rem; margin: auto; line-height: 1.75; font-size: 1.15rem; background-color: #fafafa; }
+  p, ul, ol { margin-bottom: 1rem; color: #1d1d1d; font-family: sans-serif; }
+  pre { padding: 4px; overflow: auto; line-height: 1.25; }
+  a { background-color: transparent; text-decoration: none; cursor: pointer; }
+  a:hover, a:focus { text-decoration: underline; }
+  .m-0 { margin: 0px; }
+  .my-1 { margin-top: 0.25rem; margin-bottom: 0.25rem; }
+  .my-4 { margin-top: 1rem; margin-bottom: 1rem; }
+  .mx-auto { margin-left: auto; margin-right: auto; }
+  .ml-2 { margin-left: 0.5rem; }
+  .mr-1 { margin-right: 0.25rem; }
+  .p-0 { padding: 0px; }
+  .flex { display: flex; }
+  .flex-wrap { flex-wrap: wrap; }
+  .justify-center { justify-content: center; }
+  .gray-600 { color: #4b5563; }
+  .font-bold { font-weight: bold; }
+  .text-sm { font-size: 0.875rem; }
+  .w-100 { width: 100%; }
+  .h-auto { height: auto; }
+  @media screen and (min-width: 30em) and (max-width: 60em) {
+    .w-90-m { width: 90%; }
+  }
+  @media screen and (min-width: 60em) {
+    .w-80-l { width: 80%; }
+  }
+  .block { display: block; }
+  .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .list-none { list-style: none; }
+</style>
+<title>{{ if $.Category }}{{ $.Category }}{{ else }}posts{{ end }} - {{ $.Site.Title }}</title>
+<nav>
+  {{ range $i, $navigationLink := $.Site.NavigationLinks }}
+  {{ if $i }}&boxv; {{ end }}<a href='{{ $navigationLink.URL }}'>{{ $navigationLink.Name }}</a>
+  {{ end }}
+</nav>
+<hr>
+<h1>{{ if $.Category }}{{ $.Category }}{{ else }}posts{{ end }}</h1>
+{{ if $.Posts }}
+  <ul class='m-0 p-0 list-none'>
+    {{ range $post := $.Posts }}
+    <li>
+      <div>
+        <a href='/{{ join "posts" $.Category $post.Name }}/' class='font-bold'>{{ $post.Title }}</a>
+        <span class='ml-2 text-sm gray-600'>{{ formatTime $post.CreationTime "2006-01-02" $.Site.TimezoneOffsetSeconds }}</span>
+      </div>
+      <div title='{{ $post.Preview }}' class='my-1 text-sm'>
+        {{ $post.Preview }}{{ if $post.HasMore }} <a href='/{{ join "posts" $.Category $post.Name }}/'>read more</a>{{ end }}
+      </div>
+    </li>
+    {{ end }}
+  </ul>
+  {{ if ne $.Pagination.First $.Pagination.Last }}
+  <div>
+    {{ if ne $.Pagination.Current $.Pagination.First }}
+    <a href='/{{ join "posts" $.Category }}/' class='mr-1'>first</a>
+    {{ end }}
+    {{ if and $.Pagination.Previous (ne $.Pagination.Previous $.Pagination.First) }}
+    <a href='/{{ join "posts" $.Category (case $.Pagination.Previous 1 "" $.Pagination.Previous) }}/' class='mr-1'>previous</a>
+    {{ end }}
+    {{ range $number := $.Pagination.Numbers }}
+    <a href='/{{ join "posts" $.Category (case $number 1 "" $number) }}/' class='mr-1{{ if eq $number $.Pagination.Current }} font-bold{{ end }}'>{{ $number }}</a>
+    {{ end }}
+    {{ if and $.Pagination.Next (ne $.Pagination.Next $.Pagination.Last) }}
+    <a href='/{{ join "posts" $.Category $.Pagination.Next }}/' class='mr-1'>next</a>
+    {{ end }}
+    {{ if ne $.Pagination.Current $.Pagination.Last }}
+    <a href='/{{ join "posts" $.Category $.Pagination.Last }}/' class='mr-1'>last</a>
+    {{ end }}
+  </div>
+  {{ end }}
+{{ else }}
+  <p>- No posts -</p>
+{{ end }}

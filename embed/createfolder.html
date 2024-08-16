@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>Create folder</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  {{- if $.SitePrefix }}
+  &bull;<a href='/{{ join "files" $.SitePrefix }}/' class='ma2 white'>{{ $.SitePrefix }}</a>
+  {{- end }}
+  &bull;<a href='{{ $.ContentBaseURL }}' class='ma2 white'>view site</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if eq $.Error "InvalidParent" }}
+<div>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <div class='mv3 b tc'>Can't create a folder here.</div>
+</div>
+{{- else }}
+<form method='post' action='/{{ join "files" $.SitePrefix "createfolder" }}/' data-prevent-double-submit>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- else }}
+  <div><a href='/{{ join "files" $.SitePrefix $.Parent }}/'>&larr; back</a></div>
+  {{- end }}
+  <h2 class='ma0 b'>
+    {{- if eq $.Parent "posts" }}
+    Create a new category
+    {{- else }}
+    Create a new folder in <a href='/{{ join "files" $.SitePrefix $.Parent }}/'>{{ base $.Parent }}/</a>
+    {{- end }}
+  </h2>
+  <div><span class='dark-red'>*&nbsp;</span><em>required</em></div>
+  <input type='hidden' name='parent' value='{{ $.Parent }}'>
+  <div class='mv3'>
+    <div><span class='dark-red'>*&nbsp;</span><label for='name' class='b'>Name:</label></div>
+    <input id='name' name='name' value='{{ $.Name }}' class='pv1 ph2 br2 ba w-100{{ if index $.FormErrors "name" }} b--invalid-red{{ end }}' required{{ if not (index $.FormErrors "name") }} autofocus{{ end }}>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "name" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>
+    {{- if eq $.Parent "posts" }}
+    Create category
+    {{- else }}
+    Create folder
+    {{- end }}
+  </button>
+</form>
+{{- end }}
