@@ -41,8 +41,8 @@ import (
 	"github.com/caddyserver/certmagic"
 	"github.com/libdns/libdns"
 	"github.com/oschwald/maxminddb-golang"
-	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
 	"golang.org/x/crypto/blake2b"
 )
@@ -428,7 +428,9 @@ func (nbrew *Notebrew) GetFlashSession(w http.ResponseWriter, r *http.Request, v
 // Crockford Base32 encoding.
 var base32Encoding = base32.NewEncoding("0123456789abcdefghjkmnpqrstvwxyz").WithPadding(base32.NoPadding)
 
-func markdownTextOnly(markdown goldmark.Markdown, src []byte) string {
+// markdownTextOnly takes in a markdown snippet and extracts the text only,
+// removing any markup.
+func markdownTextOnly(parser parser.Parser, src []byte) string {
 	buf := bufPool.Get().(*bytes.Buffer)
 	defer func() {
 		if buf.Cap() <= maxPoolableBufferCapacity {
@@ -438,7 +440,7 @@ func markdownTextOnly(markdown goldmark.Markdown, src []byte) string {
 	}()
 	var node ast.Node
 	nodes := []ast.Node{
-		markdown.Parser().Parse(text.NewReader(src)),
+		parser.Parse(text.NewReader(src)),
 	}
 	for len(nodes) > 0 {
 		node, nodes = nodes[len(nodes)-1], nodes[:len(nodes)-1]
@@ -457,6 +459,7 @@ func markdownTextOnly(markdown goldmark.Markdown, src []byte) string {
 	// Manually escape backslashes (goldmark may be able to do this,
 	// investigate).
 	var b strings.Builder
+	b.Grow(buf.Len())
 	output := buf.Bytes()
 	// Jump to the location of each backslash found in the output.
 	for i := bytes.IndexByte(output, '\\'); i >= 0; i = bytes.IndexByte(output, '\\') {
@@ -471,6 +474,8 @@ func markdownTextOnly(markdown goldmark.Markdown, src []byte) string {
 	return b.String()
 }
 
+// isURLUnsafe is a rune-to-bool mapping indicating if a rune is unsafe for
+// URLs.
 var isURLUnsafe = [...]bool{
 	' ': true, '!': true, '"': true, '#': true, '$': true, '%': true, '&': true, '\'': true,
 	'(': true, ')': true, '*': true, '+': true, ',': true, '/': true, ':': true, ';': true,
@@ -478,6 +483,8 @@ var isURLUnsafe = [...]bool{
 	'`': true, '{': true, '}': true, '|': true, '~': true,
 }
 
+// urlSafe sanitizes a string to make it url-safe by removing any url-unsafe
+// characters.
 func urlSafe(s string) string {
 	s = strings.TrimSpace(s)
 	var count int
@@ -512,7 +519,8 @@ func urlSafe(s string) string {
 	return strings.Trim(b.String(), ".")
 }
 
-// https://stackoverflow.com/a/31976060
+// filenameReplacementChars is a map of filename-unsafe runes to their
+// filename-safe replacements. Reference: https://stackoverflow.com/a/31976060.
 var filenameReplacementChars = [...]rune{
 	'<':  '＜', // U+FF1C, FULLWIDTH LESS-THAN SIGN
 	'>':  '＞', // U+FF1E, FULLWIDTH GREATER-THAN SIGN
@@ -523,9 +531,14 @@ var filenameReplacementChars = [...]rune{
 	'|':  '│', // U+2502, BOX DRAWINGS LIGHT VERTICAL
 	'?':  '？', // U+FF1F, FULLWIDTH QUESTION MARK
 	'*':  '∗', // U+2217, ASTERISK OPERATOR
-	'#':  '＃', // U+FF03, FULLWIDTH NUMBER SIGN
+	// NOTE: Hex is technically not filename-unsafe, but is does not get
+	// properly escaped in URLs because it gets mistaken as the fragment
+	// identifier so we need to replace it too.
+	'#': '＃', // U+FF03, FULLWIDTH NUMBER SIGN
 }
 
+// filenameSafe makes a string safe for use in filenames by replacing any
+// filename-unsafe characters to their filename-safe equivalents.
 func filenameSafe(s string) string {
 	s = strings.TrimSpace(s)
 	var b strings.Builder
@@ -565,6 +578,11 @@ var readerPool = sync.Pool{
 	},
 }
 
+// ExecuteTemplate renders a given template with the given data into the
+// ResponseWriter, but it first buffers the HTML output so that it can detect
+// if any template errors occurred, and if so return 500 Internal Server Error
+// instead. Additionally, it does on-the-fly gzipping of the HTML response as
+// well as calculating the ETag so that the HTML may be cached by the client.
 func (nbrew *Notebrew) ExecuteTemplate(w http.ResponseWriter, r *http.Request, tmpl *template.Template, data any) {
 	buf := bufPool.Get().(*bytes.Buffer)
 	defer func() {
@@ -573,13 +591,11 @@ func (nbrew *Notebrew) ExecuteTemplate(w http.ResponseWriter, r *http.Request, t
 			bufPool.Put(buf)
 		}
 	}()
-
 	hasher := hashPool.Get().(hash.Hash)
 	defer func() {
 		hasher.Reset()
 		hashPool.Put(hasher)
 	}()
-
 	multiWriter := io.MultiWriter(buf, hasher)
 	gzipWriter := gzipWriterPool.Get().(*gzip.Writer)
 	gzipWriter.Reset(multiWriter)
@@ -587,7 +603,6 @@ func (nbrew *Notebrew) ExecuteTemplate(w http.ResponseWriter, r *http.Request, t
 		gzipWriter.Reset(io.Discard)
 		gzipWriterPool.Put(gzipWriter)
 	}()
-
 	err := tmpl.Execute(gzipWriter, data)
 	if err != nil {
 		nbrew.GetLogger(r.Context()).Error(err.Error())
@@ -601,7 +616,6 @@ func (nbrew *Notebrew) ExecuteTemplate(w http.ResponseWriter, r *http.Request, t
 		nbrew.InternalServerError(w, r, err)
 		return
 	}
-
 	var b [blake2b.Size256]byte
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Content-Encoding", "gzip")
