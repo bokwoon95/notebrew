@@ -49,6 +49,8 @@ type rawTable struct {
 //go:embed schema_files.json
 var filesSchemaBytes []byte
 
+// FilesCatalog returns a catalog representing the desired catalog schema for
+// the files database.
 func FilesCatalog(dialect string) (*ddl.Catalog, error) {
 	return UnmarshalCatalog(dialect, filesSchemaBytes)
 }
@@ -56,10 +58,13 @@ func FilesCatalog(dialect string) (*ddl.Catalog, error) {
 //go:embed schema_database.json
 var databaseSchemaBytes []byte
 
+// DatabaseCatalog returns a catalog representing the desired catalog schema for
+// the database.
 func DatabaseCatalog(dialect string) (*ddl.Catalog, error) {
 	return UnmarshalCatalog(dialect, databaseSchemaBytes)
 }
 
+// UnmarshalCatalog unmarshals a JSON payload into a *ddl.Catalog.
 func UnmarshalCatalog(dialect string, b []byte) (*ddl.Catalog, error) {
 	var rawTables []rawTable
 	decoder := json.NewDecoder(bytes.NewReader(b))

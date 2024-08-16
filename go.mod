@@ -11,6 +11,8 @@ require (
 	github.com/pkg/sftp v1.13.6
 	golang.org/x/crypto v0.9.0
 	golang.org/x/sync v0.2.0
+	golang.org/x/sys v0.8.0
+	golang.org/x/time v0.6.0
 )
 
 require (
@@ -23,6 +25,5 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.17 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.15 // indirect
 	github.com/kr/fs v0.1.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 )
