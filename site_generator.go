@@ -51,7 +51,8 @@ type SiteGenerator struct {
 	// sitePrefix is the site prefix.
 	sitePrefix string
 
-	// contentDomain is the domain that the site's generated content is served on.
+	// contentDomain is the domain that the site's generated content is served
+	// on.
 	contentDomain string
 
 	// contentDomainHTTPS indicates whether the content domain is served over
@@ -72,33 +73,77 @@ type SiteGenerator struct {
 	// imgFileIDs.
 	mutex sync.RWMutex
 
-	templateCache      map[string]*template.Template
+	// templateCache caches already-parsed templates, keyed by their file path
+	// (relative to the sitePrefix).
+	templateCache map[string]*template.Template
+
+	// templateInProgress stores wait channels of the templates whose parsing
+	// are currently in progress. If a wait channel is present, all code
+	// looking to parse a template should wait until the channel returns, then
+	// check the template cache for the already-parsed template. This ensures
+	// that goroutines do not parse the same template twice -- one goroutine
+	// will always parse the templates first, the rest will wait for the result
+	// and fetch it from the templateCache map.
 	templateInProgress map[string]chan struct{}
-	imgFileIDs         map[string]ID
+
+	// imgFileIDs stores a mapping of image file paths to their file IDs. This
+	// is used for rewriting image URLs into their CDN links, which references
+	// images by their file IDs.
+	imgFileIDs map[string]ID
 }
 
+// NavigationLink represents a navigation link to be displayed in the site's
+// navigation menu.
 type NavigationLink struct {
+	// Name of the link.
 	Name string
-	URL  template.URL
+
+	// URL of the link.
+	URL template.URL
 }
 
+// Site holds the global properties of a site.
 type Site struct {
-	LanguageCode          string
-	Title                 string
-	Favicon               template.URL
+	// Language code of the site.
+	LanguageCode string
+
+	// Title of the site.
+	Title string
+
+	// Favicon of the site.
+	Favicon template.URL
+
+	// The site's timezone offset in seconds.
 	TimezoneOffsetSeconds int
-	Description           string
-	NavigationLinks       []NavigationLink
+
+	// Description of the site.
+	Description string
+
+	// NavigationLinks of the site.
+	NavigationLinks []NavigationLink
 }
 
+// SiteGeneratorConfig holds the parameters needed to construct a new SiteGenerator.
 type SiteGeneratorConfig struct {
-	FS                 FS
-	ContentDomain      string
+	// FS is the filesystem that holds the site content.
+	FS FS
+
+	// ContentDomain is the domain that the site's generated content is served
+	// on.
+	ContentDomain string
+
+	// ContentDomainHTTPS indicates whether the content domain is served over
+	// HTTPS.
 	ContentDomainHTTPS bool
-	CDNDomain          string
-	SitePrefix         string
+
+	// CDNDomain is the domain of the CDN that is used for hosting images.
+	CDNDomain string
+
+	// SitePrefix is the site prefix of the site.
+	SitePrefix string
 }
 
+// NewSiteGenerator constructs a new SiteGenerator.
 func NewSiteGenerator(ctx context.Context, siteGenConfig SiteGeneratorConfig) (*SiteGenerator, error) {
 	siteGen := &SiteGenerator{
 		fsys:               siteGenConfig.FS,
@@ -271,6 +316,7 @@ func NewSiteGenerator(ctx context.Context, siteGenConfig SiteGeneratorConfig) (*
 	return siteGen, nil
 }
 
+// ParseTemplate parses TODO:
 func (siteGen *SiteGenerator) ParseTemplate(ctx context.Context, name, text string) (*template.Template, error) {
 	return siteGen.parseTemplate(ctx, name, text, nil)
 }
