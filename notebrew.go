@@ -624,6 +624,8 @@ func (nbrew *Notebrew) ExecuteTemplate(w http.ResponseWriter, r *http.Request, t
 	http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(buf.Bytes()))
 }
 
+// ContentBaseURL returns the content site's base URL (starting with http:// or
+// https://) for a given site prefix.
 func (nbrew *Notebrew) ContentBaseURL(sitePrefix string) string {
 	if strings.Contains(sitePrefix, ".") {
 		return "https://" + sitePrefix
@@ -640,6 +642,9 @@ func (nbrew *Notebrew) ContentBaseURL(sitePrefix string) string {
 	return "http://" + nbrew.CMSDomain
 }
 
+// GetReferer is like (*http.Request).Referer() except it returns an empty
+// string if the referer is the same as the current page's URL so that the user
+// doesn't keep pressing back to the same page.
 func (nbrew *Notebrew) GetReferer(r *http.Request) string {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer
 	//
@@ -656,14 +661,16 @@ func (nbrew *Notebrew) GetReferer(r *http.Request) string {
 	uri.Host = r.Host
 	uri.Fragment = ""
 	uri.User = nil
-	// If the referer is same as the current page, return an empty string so
-	// that the user doesn't keep pressing back to the same page.
 	if referer == uri.String() {
 		return ""
 	}
 	return referer
 }
 
+// errorTemplate is the template used for all error responses i.e.
+// InternalServerError, NotFound, NotAuthorized, etc. It is parsed once at
+// package initialization time so any changes to the error template require
+// recompiling the notebrew binary.
 var errorTemplate = template.Must(template.
 	New("error.html").
 	Funcs(map[string]any{
@@ -677,6 +684,8 @@ var errorTemplate = template.Must(template.
 	ParseFS(RuntimeFS, "embed/error.html"),
 )
 
+// HumanReadableFileSize returns a human readable file size of an int64 size in
+// bytes.
 func HumanReadableFileSize(size int64) string {
 	// https://yourbasic.org/golang/formatting-byte-size-to-human-readable-format/
 	if size < 0 {
@@ -694,6 +703,7 @@ func HumanReadableFileSize(size int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "kMGTPE"[exp])
 }
 
+// BadRequest indicates that something was wrong with the request data.
 func (nbrew *Notebrew) BadRequest(w http.ResponseWriter, r *http.Request, serverErr error) {
 	var message string
 	var maxBytesErr *http.MaxBytesError
@@ -756,6 +766,7 @@ func (nbrew *Notebrew) BadRequest(w http.ResponseWriter, r *http.Request, server
 	buf.WriteTo(w)
 }
 
+// NotAuthenticated indicates that the user is not logged in.
 func (nbrew *Notebrew) NotAuthenticated(w http.ResponseWriter, r *http.Request) {
 	if r.Form.Has("api") {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -807,6 +818,8 @@ func (nbrew *Notebrew) NotAuthenticated(w http.ResponseWriter, r *http.Request) 
 	buf.WriteTo(w)
 }
 
+// NotAuthorized indicates that the user is logged in, but is not authorized to
+// view the current page or perform the current action.
 func (nbrew *Notebrew) NotAuthorized(w http.ResponseWriter, r *http.Request) {
 	if r.Form.Has("api") {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -833,7 +846,7 @@ func (nbrew *Notebrew) NotAuthorized(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 	var byline string
-	if r.Method == "GET" {
+	if r.Method == "GET" || r.Method == "HEAD" {
 		byline = "You do not have permission to view this page (try logging in to a different account)."
 	} else {
 		byline = "You do not have permission to perform that action (try logging in to a different account)."
@@ -857,6 +870,7 @@ func (nbrew *Notebrew) NotAuthorized(w http.ResponseWriter, r *http.Request) {
 	buf.WriteTo(w)
 }
 
+// NotFound indicates that a URL does not exist.
 func (nbrew *Notebrew) NotFound(w http.ResponseWriter, r *http.Request) {
 	if r.Form.Has("api") {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -901,6 +915,7 @@ func (nbrew *Notebrew) NotFound(w http.ResponseWriter, r *http.Request) {
 	buf.WriteTo(w)
 }
 
+// MethodNotAllowed indicates that the request method is not allowed.
 func (nbrew *Notebrew) MethodNotAllowed(w http.ResponseWriter, r *http.Request) {
 	if r.Form.Has("api") {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -945,6 +960,8 @@ func (nbrew *Notebrew) MethodNotAllowed(w http.ResponseWriter, r *http.Request) 
 	buf.WriteTo(w)
 }
 
+// UnsupportedContentType indicates that the request did not send a supported
+// Content-Type.
 func (nbrew *Notebrew) UnsupportedContentType(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 	var message string
@@ -996,6 +1013,12 @@ func (nbrew *Notebrew) UnsupportedContentType(w http.ResponseWriter, r *http.Req
 	buf.WriteTo(w)
 }
 
+// InternalServerError is a catch-all handler for catching server errors and
+// displaying it to the user.
+//
+// This includes the error message as well as the stack trace and notebrew
+// version, in hopes that a user will be able to give developers the detailed
+// error and trace in order to diagnose the problem faster.
 func (nbrew *Notebrew) InternalServerError(w http.ResponseWriter, r *http.Request, serverErr error) {
 	if serverErr == nil {
 		if r.Method == "HEAD" {
@@ -1080,6 +1103,9 @@ func (nbrew *Notebrew) InternalServerError(w http.ResponseWriter, r *http.Reques
 	buf.WriteTo(w)
 }
 
+// ServeFile serves a given file (in the form of an io.Reader). It applies a
+// potential list of optimizations such as gzipping the response, handling
+// Range requests, calculating the ETag and setting the Cache-Control header.
 func ServeFile(w http.ResponseWriter, r *http.Request, name string, size int64, fileType FileType, reader io.Reader, cacheControl string) {
 	// If max-age is present in Cache-Control, don't set the ETag because that
 	// would override max-age. https://stackoverflow.com/a/51257030
@@ -1272,8 +1298,11 @@ func ServeFile(w http.ResponseWriter, r *http.Request, name string, size int64, 
 	gzipWriter.Close()
 }
 
+// ErrStorageLimitExceeded is the error returned by an operation if a user
+// exceeded their storage limit during the operation.
 var ErrStorageLimitExceeded = fmt.Errorf("storage limit exceeded")
 
+// StorageLimitExceeded indicates that the user exceeded their storage limit.
 func (nbrew *Notebrew) StorageLimitExceeded(w http.ResponseWriter, r *http.Request) {
 	if r.Form.Has("api") {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -1318,6 +1347,7 @@ func (nbrew *Notebrew) StorageLimitExceeded(w http.ResponseWriter, r *http.Reque
 	buf.WriteTo(w)
 }
 
+// AccountDisabled indicates that a user's account is disabled.
 func (nbrew *Notebrew) AccountDisabled(w http.ResponseWriter, r *http.Request, disableReason string) {
 	if r.Form.Has("api") {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -1358,7 +1388,7 @@ func (nbrew *Notebrew) AccountDisabled(w http.ResponseWriter, r *http.Request, d
 	buf.WriteTo(w)
 }
 
-// The missing LimitedWriter from the stdlib.
+// LimitedWriter is the missing half of LimitedReader from the stdlib.
 // https://github.com/golang/go/issues/54111#issuecomment-1220793565
 type LimitedWriter struct {
 	W   io.Writer // underlying writer
@@ -1366,6 +1396,7 @@ type LimitedWriter struct {
 	Err error     // error to be returned once limit is reached
 }
 
+// Write implements io.Writer.
 func (lw *LimitedWriter) Write(p []byte) (int, error) {
 	if lw.N < 1 {
 		return 0, lw.Err
@@ -1378,6 +1409,7 @@ func (lw *LimitedWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
+// RealClientIP returns the real client IP of the request.
 func RealClientIP(r *http.Request, realIPHeaders map[netip.Addr]string, proxyIPs map[netip.Addr]struct{}) netip.Addr {
 	// Reference: https://adam-p.ca/blog/2022/03/x-forwarded-for/
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -1430,6 +1462,8 @@ func RealClientIP(r *http.Request, realIPHeaders map[netip.Addr]string, proxyIPs
 	return netip.Addr{}
 }
 
+// MaxMindDBRecord is the struct used to retrieve the country for an IP
+// address.
 type MaxMindDBRecord struct {
 	Country struct {
 		ISOCode string `maxminddb:"iso_code"`
@@ -1440,24 +1474,41 @@ var (
 	//go:embed embed static
 	embedFS embed.FS
 
+	// RuntimeFS is the FS containing the runtime files needed by notebrew for
+	// operation.
 	RuntimeFS fs.FS = embedFS
 
+	// developerMode indicates if the developer mode is enabled for the current
+	// binary.
 	developerMode = false
 
+	// StylesCSS is the contents of the styles.css file in the embed/
+	// directory.
 	StylesCSS string
 
+	// StylesCSSHash is the sha256 hash of the StylesCSS contents.
 	StylesCSSHash string
 
+	// BaselineJS is the contents of the baseline.js file in the embed/
+	// directory.
 	BaselineJS string
 
+	// BaselineJSHash is the sha256 hash of the BaselineJS contents.
 	BaselineJSHash string
 
+	// Version holds the current notebrew git revision.
 	Version string
 
+	// commonPasswords is a set of the top 10,000 most common passwords from
+	// top_10000_passwords.txt in the embed/ directory.
 	commonPasswords = make(map[string]struct{})
 
+	// CountryCodes is the ISO code to country mapping from country_codes.json
+	// in the embed/ directory.
 	CountryCodes map[string]string
 
+	// ReservedSubdomains is the list of reserved subdomains that users will
+	// not be able to use on the content domain.
 	ReservedSubdomains = []string{"www", "cdn", "storage", "videocdn", "videostorage"}
 )
 
@@ -1490,7 +1541,7 @@ func init() {
 	BaselineJS = string(b)
 	BaselineJSHash = "'sha256-" + base64.StdEncoding.EncodeToString(hash[:]) + "'"
 	// common passwords
-	file, err := RuntimeFS.Open("embed/top-10000-passwords.txt")
+	file, err := RuntimeFS.Open("embed/top_10000_passwords.txt")
 	if err != nil {
 		panic(err)
 	}
