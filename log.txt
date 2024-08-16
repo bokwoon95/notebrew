@@ -1,3 +1,5 @@
+sq/sq.go
+stacktrace/stacktrace.go
 schema.go
 id.go
 object_storage.go
@@ -11,8 +13,11 @@ creation_time.go
 creation_time_darwin.go
 creation_time_linux.go
 creation_time_windows.go
+embed/*
 notebrew.go
 developer_mode.go
+internal/highlighting/highlighting.go
+internal/highlighting/markdownmath.go
 site_generator.go
 
 TODO: once the port of nb10 is complete, change sq to use Go 1.23's range over iterator funcs (we will need to drastically change the error handling of all code that uses a cursor).
