@@ -113,14 +113,14 @@ type Notebrew struct {
 	IP6 netip.Addr
 
 	// Domains is the list of domains that need to be configured to point at
-	// notebrew in order for notebrew to work (reverse-proxying traffic also
-	// counts).
+	// notebrew in order for notebrew to work.
 	Domains []string
 
 	// ManagingDomains is the list of domains that the current instance of
 	// notebrew is currently managing SSL certificates for.
 	ManagingDomains []string
 
+	// CaptchaConfig
 	CaptchaConfig struct {
 		WidgetScriptSrc   template.URL
 		WidgetClass       string
