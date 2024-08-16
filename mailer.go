@@ -274,7 +274,8 @@ func (mailer *Mailer) start() {
 	}
 }
 
-// Close
+// Close shuts down the background job listening for incoming mail on the C
+// channel and returns when the background job is completed.
 func (mailer *Mailer) Close() error {
 	mailer.baseCtxCancel()
 	<-mailer.stopped
