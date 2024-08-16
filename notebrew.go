@@ -81,7 +81,7 @@ type Notebrew struct {
 	ContentDomainHTTPS bool
 
 	// CDNDomain is the domain of the CDN that notebrew is using to host its
-	// images. Examples: img.nbrew.net, nbrewimg.net.
+	// images. Examples: cdn.nbrew.net, nbrewcdn.net.
 	//
 	// If empty, it means that notebrew is not using a CDN.
 	CDNDomain string
