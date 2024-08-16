@@ -112,34 +112,64 @@ type Notebrew struct {
 	// serving either port 80 (HTTP) or 443 (HTTPS).
 	IP6 netip.Addr
 
-	// Domains is the list of domains that need to be configured to point at
-	// notebrew in order for notebrew to work.
+	// Domains is the list of domains that need to point at notebrew for it to
+	// work. Does not include user-created domains.
 	Domains []string
 
 	// ManagingDomains is the list of domains that the current instance of
-	// notebrew is currently managing SSL certificates for.
+	// notebrew is managing SSL certificates for.
 	ManagingDomains []string
 
-	// CaptchaConfig
+	// Captcha configuration.
 	CaptchaConfig struct {
-		WidgetScriptSrc   template.URL
-		WidgetClass       string
-		VerificationURL   string
+		// Captcha widget's script src. e.g. https://js.hcaptcha.com/1/api.js,
+		// https://challenges.cloudflare.com/turnstile/v0/api.js
+		WidgetScriptSrc template.URL
+
+		// Captcha widget's container div class. e.g. h-captcha, cf-turnstile
+		WidgetClass string
+
+		// Captcha verification URL to make POST requests to. e.g.
+		// https://api.hcaptcha.com/siteverify,
+		// https://challenges.cloudflare.com/turnstile/v0/siteverify
+		VerificationURL string
+
+		// Captcha response token name. e.g. h-captcha-response,
+		// cf-turnstile-response
 		ResponseTokenName string
-		SiteKey           string
-		SecretKey         string
-		CSP               map[string]string
+
+		// Captcha site key.
+		SiteKey string
+
+		// Captcha secret key.
+		SecretKey string
+
+		// CSP contains the Content-Security-Policy directive names and values
+		// required for the captcha widget to work.
+		CSP map[string]string
 	}
 
+	// Mailer is used to send out transactional emails e.g. password reset
+	// emails.
 	Mailer *Mailer
 
+	// The default value for SMTP MAIL FROM instruction.
 	MailFrom string
 
+	// The default value for SMTP Reply-To header.
 	ReplyTo string
 
+	// Proxy configuration.
 	ProxyConfig struct {
+		// RealIPHeaders contains trusted IP addresses to HTTP headers that
+		// they are known to populate the real client IP with. e.g. X-Real-IP,
+		// True-Client-IP.
 		RealIPHeaders map[netip.Addr]string
-		ProxyIPs      map[netip.Addr]struct{}
+
+		// Contains the set of trusted proxy IP addresses. This is used when
+		// resolving the real client IP from the X-Forwarded-For HTTP header
+		// chain from right (most trusted) to left (most accurate).
+		ProxyIPs map[netip.Addr]struct{}
 	}
 
 	DNSProvider interface {
