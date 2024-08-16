@@ -49,28 +49,6 @@ import (
 
 // Notebrew represents a notebrew instance.
 type Notebrew struct {
-	CMSDomain string // localhost:6444, example.com
-
-	CMSDomainHTTPS bool
-
-	ContentDomain string // localhost:6444, example.com
-
-	ContentDomainHTTPS bool
-
-	CDNDomain string
-
-	ImgCmd string
-
-	Port int
-
-	IP4 netip.Addr
-
-	IP6 netip.Addr
-
-	Domains []string
-
-	ManagingDomains []string
-
 	// FS is the file system associated with the notebrew instance.
 	FS FS
 
@@ -86,6 +64,63 @@ type Notebrew struct {
 	// implementation is provided, ErrorCode should return an empty string.
 	ErrorCode func(error) string
 
+	// CMSDomain is the domain that the notebrew is using to serve the CMS.
+	// Examples: localhost:6444, notebrew.com
+	CMSDomain string
+
+	// CMSDomainHTTPS indicates whether the CMS domain is currently being
+	// served over HTTPS.
+	CMSDomainHTTPS bool
+
+	// ContentDomain is the domain that the notebrew instance is using to serve
+	// the static generated content. Examples: localhost:6444, nbrew.net.
+	ContentDomain string
+
+	// ContentDomainHTTPS indicates whether the content domain is currently
+	// being served over HTTPS.
+	ContentDomainHTTPS bool
+
+	// CDNDomain is the domain of the CDN that notebrew is using to host its
+	// images. Examples: img.nbrew.net, nbrewimg.net.
+	//
+	// If empty, it means that notebrew is not using a CDN.
+	CDNDomain string
+
+	// ImgCmd is the command (must reside in $PATH) used to optimize images for
+	// the web before they are saved to the FS. Images in the notes folder are
+	// never optimized as they are not expected to be served over the web. This
+	// also serves as an a escape hatch for users who wish to upload their
+	// images without any web optimization, they can upload to the notes folder
+	// first.
+	//
+	// It expects arguments in the form of `<ImgCmd> $INPUT_PATH $OUTPUT_PATH`,
+	// where $INPUT_PATH is the input path to the raw image and $OUTPUT_PATH is
+	// output path where ImgCmd should dump the optimized image.
+	//
+	// If empty, it means notebrew is not using an ImgCmd and will save images
+	// directly to the FS.
+	ImgCmd string
+
+	// Port is port that notebrew is listening on.
+	Port int
+
+	// IP4 is the IPv4 address of the current machine, if notebrew is currently
+	// serving either port 80 (HTTP) or 443 (HTTPS).
+	IP4 netip.Addr
+
+	// IP6 is the IPv6 address of the current machine, if notebrew is currently
+	// serving either port 80 (HTTP) or 443 (HTTPS).
+	IP6 netip.Addr
+
+	// Domains is the list of domains that need to be configured to point at
+	// notebrew in order for notebrew to work (reverse-proxying traffic also
+	// counts).
+	Domains []string
+
+	// ManagingDomains is the list of domains that the current instance of
+	// notebrew is currently managing SSL certificates for.
+	ManagingDomains []string
+
 	CaptchaConfig struct {
 		WidgetScriptSrc   template.URL
 		WidgetClass       string
@@ -96,9 +131,11 @@ type Notebrew struct {
 		CSP               map[string]string
 	}
 
-	Mailer   *Mailer
+	Mailer *Mailer
+
 	MailFrom string
-	ReplyTo  string
+
+	ReplyTo string
 
 	ProxyConfig struct {
 		RealIPHeaders map[netip.Addr]string
