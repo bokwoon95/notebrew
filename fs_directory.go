@@ -81,7 +81,7 @@ func (fsys *DirectoryFS) As(target any) bool {
 	}
 }
 
-// WithContext returns a new DirectoryFS with the given context.
+// WithContext returns a new FS with the given context.
 func (fsys *DirectoryFS) WithContext(ctx context.Context) FS {
 	return &DirectoryFS{
 		RootDir: fsys.RootDir,

@@ -135,7 +135,7 @@ func (fsys *DatabaseFS) As(target any) bool {
 	}
 }
 
-// WithContext returns a new DatabaseFS with the given context.
+// WithContext returns a new FS with the given context.
 func (fsys *DatabaseFS) WithContext(ctx context.Context) FS {
 	return &DatabaseFS{
 		DB:                fsys.DB,
@@ -149,7 +149,7 @@ func (fsys *DatabaseFS) WithContext(ctx context.Context) FS {
 	}
 }
 
-// WithValues returns a new DatabaseFS with the given values.
+// WithValues returns a new FS with the given values.
 //
 // Currently, the following values are recognized:
 //
