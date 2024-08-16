@@ -425,6 +425,7 @@ func (nbrew *Notebrew) GetFlashSession(w http.ResponseWriter, r *http.Request, v
 	return true, nil
 }
 
+// Crockford Base32 encoding.
 var base32Encoding = base32.NewEncoding("0123456789abcdefghjkmnpqrstvwxyz").WithPadding(base32.NoPadding)
 
 func markdownTextOnly(markdown goldmark.Markdown, src []byte) string {
