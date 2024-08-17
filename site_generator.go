@@ -264,12 +264,12 @@ func NewSiteGenerator(ctx context.Context, siteGenConfig SiteGeneratorConfig) (*
 	if siteGen.cdnDomain == "" {
 		return siteGen, nil
 	}
-	databaseFS, ok := &DatabaseFS{}, false
+	databaseFS, isDatabaseFS := &DatabaseFS{}, false
 	switch v := siteGen.fsys.(type) {
 	case interface{ As(any) bool }:
-		ok = v.As(&databaseFS)
+		isDatabaseFS = v.As(&databaseFS)
 	}
-	if !ok {
+	if !isDatabaseFS {
 		return siteGen, nil
 	}
 	extFilter := sq.Expr("1 = 1")
@@ -624,12 +624,12 @@ func (siteGen *SiteGenerator) GeneratePage(ctx context.Context, filePath, text s
 	group.Go(func() (err error) {
 		defer stacktrace.RecoverPanic(&err)
 		markdownMu := sync.Mutex{}
-		databaseFS, ok := &DatabaseFS{}, false
+		databaseFS, isDatabaseFS := &DatabaseFS{}, false
 		switch v := siteGen.fsys.(type) {
 		case interface{ As(any) bool }:
-			ok = v.As(&databaseFS)
+			isDatabaseFS = v.As(&databaseFS)
 		}
-		if ok {
+		if isDatabaseFS {
 			var b strings.Builder
 			args := make([]any, 0, len(imgExts)+1)
 			b.WriteString("(file_path LIKE '%.md' ESCAPE '\\'")
@@ -776,12 +776,12 @@ func (siteGen *SiteGenerator) GeneratePage(ctx context.Context, filePath, text s
 	group.Go(func() (err error) {
 		defer stacktrace.RecoverPanic(&err)
 		pageDir := path.Join(siteGen.sitePrefix, "pages", urlPath)
-		databaseFS, ok := &DatabaseFS{}, false
+		databaseFS, isDatabaseFS := &DatabaseFS{}, false
 		switch v := siteGen.fsys.(type) {
 		case interface{ As(any) bool }:
-			ok = v.As(&databaseFS)
+			isDatabaseFS = v.As(&databaseFS)
 		}
-		if ok {
+		if isDatabaseFS {
 			pageData.ChildPages, err = sq.FetchAll(groupctx, databaseFS.DB, sq.Query{
 				Dialect: databaseFS.Dialect,
 				Format: "SELECT {*}" +
@@ -1010,10 +1010,8 @@ type PostData struct {
 	ModificationTime time.Time
 }
 
-// GeneratePost generates a post. filePath is the file path to the source .md
-// post in the posts/ directory, text is the source text of the post, modTime
-// and creationTime are when the post was modified and created, tmpl is the
-// post template.
+// GeneratePost generates a post. filePath is the file path to the source post
+// in the posts/ directory and text is the text of the source post.
 func (siteGen *SiteGenerator) GeneratePost(ctx context.Context, filePath, text string, modTime, creationTime time.Time, tmpl *template.Template) error {
 	timestampPrefix, _, _ := strings.Cut(path.Base(filePath), "-")
 	if len(timestampPrefix) > 0 && len(timestampPrefix) <= 8 {
@@ -1103,12 +1101,12 @@ func (siteGen *SiteGenerator) GeneratePost(ctx context.Context, filePath, text s
 		}
 	}
 	// Images.
-	databaseFS, ok := &DatabaseFS{}, false
+	databaseFS, isDatabaseFS := &DatabaseFS{}, false
 	switch v := siteGen.fsys.(type) {
 	case interface{ As(any) bool }:
-		ok = v.As(&databaseFS)
+		isDatabaseFS = v.As(&databaseFS)
 	}
-	if ok {
+	if isDatabaseFS {
 		extFilter := sq.Expr("1 = 1")
 		if len(imgExts) > 0 {
 			var b strings.Builder
@@ -1238,11 +1236,6 @@ func (siteGen *SiteGenerator) GeneratePost(ctx context.Context, filePath, text s
 	if err != nil {
 		return stacktrace.New(err)
 	}
-	var isDatabaseFS bool
-	switch v := siteGen.fsys.(type) {
-	case interface{ As(any) bool }:
-		isDatabaseFS = v.As(&DatabaseFS{})
-	}
 	if siteGen.cdnDomain != "" && isDatabaseFS {
 		pipeReader, pipeWriter := io.Pipe()
 		result := make(chan error, 1)
@@ -1280,15 +1273,14 @@ func (siteGen *SiteGenerator) GeneratePost(ctx context.Context, filePath, text s
 	return nil
 }
 
-// GeneratePosts generates all posts for a given category. tmpl is the post
-// template.
+// GeneratePosts generates all posts for a given category.
 func (siteGen *SiteGenerator) GeneratePosts(ctx context.Context, category string, tmpl *template.Template) (int64, error) {
-	databaseFS, ok := &DatabaseFS{}, false
+	databaseFS, isDatabaseFS := &DatabaseFS{}, false
 	switch v := siteGen.fsys.(type) {
 	case interface{ As(any) bool }:
-		ok = v.As(&databaseFS)
+		isDatabaseFS = v.As(&databaseFS)
 	}
-	if ok {
+	if isDatabaseFS {
 		type File struct {
 			FilePath     string
 			Text         string
@@ -1402,26 +1394,58 @@ func (siteGen *SiteGenerator) GeneratePosts(ctx context.Context, category string
 	return count.Load(), nil
 }
 
+// Post contains metadata about a post.
 type Post struct {
-	Category         string
-	Name             string
-	Title            string
-	Preview          string
-	HasMore          bool
-	Content          string
-	Images           []Image
-	CreationTime     time.Time
+	// Category of the post.
+	Category string
+
+	// Name of the post.
+	Name string
+
+	// Title of the post.
+	Title string
+
+	// Preview of the post.
+	Preview string
+
+	// Whether the post has more text after the preview.
+	HasMore bool
+
+	// Content of the post.
+	Content string
+
+	// Images belonging to the post.
+	Images []Image
+
+	// CreationTime of the post.
+	CreationTime time.Time
+
+	// ModificationTime of the post.
 	ModificationTime time.Time
-	text             []byte // nil slice == no value, empty slice == empty value
+
+	// text of the post. nil slice means no value, empty slice means empty
+	// value.
+	text []byte
 }
 
+// PostListData is the data used to render a post list page.
 type PostListData struct {
-	Site       Site
-	Category   string
+	// Site information.
+	Site Site
+
+	// Category of the post list.
+	Category string
+
+	// Pagination information for the post list.
 	Pagination Pagination
-	Posts      []Post
+
+	// The lists of posts for the current page of the post list.
+	Posts []Post
 }
 
+// GeneratePostList generates the post list for a category, which contain one
+// or more post list pages. The category argument is the category that the post
+// list belongs to, tmpl is the post list template.
 func (siteGen *SiteGenerator) GeneratePostList(ctx context.Context, category string, tmpl *template.Template) (int64, error) {
 	var config struct {
 		PostsPerPage int
@@ -1442,12 +1466,13 @@ func (siteGen *SiteGenerator) GeneratePostList(ctx context.Context, category str
 	if config.PostsPerPage <= 0 {
 		config.PostsPerPage = 100
 	}
-	databaseFS, ok := &DatabaseFS{}, false
+	databaseFS, isDatabaseFS := &DatabaseFS{}, false
 	switch v := siteGen.fsys.(type) {
 	case interface{ As(any) bool }:
-		ok = v.As(&databaseFS)
+		isDatabaseFS = v.As(&databaseFS)
 	}
-	if ok {
+	page := 1
+	if isDatabaseFS {
 		count, err := sq.FetchOne(ctx, databaseFS.DB, sq.Query{
 			Dialect: databaseFS.Dialect,
 			Format: "SELECT {*}" +
@@ -1581,126 +1606,130 @@ func (siteGen *SiteGenerator) GeneratePostList(ctx context.Context, category str
 				return int64(page), err
 			}
 		}
-		return int64(page), nil
-	}
-	dirEntries, err := siteGen.fsys.WithContext(ctx).ReadDir(path.Join(siteGen.sitePrefix, "posts", category))
-	if err != nil {
-		return 0, stacktrace.New(err)
-	}
-	n := 0
-	for _, dirEntry := range dirEntries {
-		if dirEntry.IsDir() {
-			continue
-		}
-		if !strings.HasSuffix(dirEntry.Name(), ".md") {
-			continue
-		}
-		dirEntries[n] = dirEntry
-		n++
-	}
-	dirEntries = dirEntries[:n]
-	slices.Reverse(dirEntries)
-	lastPage := int(math.Ceil(float64(len(dirEntries)) / float64(config.PostsPerPage)))
-	group, groupctx := errgroup.WithContext(ctx)
-	group.Go(func() (err error) {
-		defer stacktrace.RecoverPanic(&err)
-		dirEntries, err := siteGen.fsys.WithContext(groupctx).ReadDir(path.Join(siteGen.sitePrefix, "output/posts", category))
+	} else {
+		dirEntries, err := siteGen.fsys.WithContext(ctx).ReadDir(path.Join(siteGen.sitePrefix, "posts", category))
 		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return nil
-			}
-			return stacktrace.New(err)
+			return 0, stacktrace.New(err)
 		}
-		subgroup, subctx := errgroup.WithContext(groupctx)
+		n := 0
 		for _, dirEntry := range dirEntries {
-			dirEntry := dirEntry
-			if !dirEntry.IsDir() {
+			if dirEntry.IsDir() {
 				continue
 			}
-			n, err := strconv.ParseInt(dirEntry.Name(), 10, 64)
-			if err != nil {
+			if !strings.HasSuffix(dirEntry.Name(), ".md") {
 				continue
 			}
-			if int(n) <= lastPage {
-				continue
-			}
-			subgroup.Go(func() (err error) {
-				defer stacktrace.RecoverPanic(&err)
-				err = siteGen.fsys.WithContext(subctx).RemoveAll(path.Join(siteGen.sitePrefix, "output/posts", category, strconv.FormatInt(n, 10)))
-				if err != nil {
-					return stacktrace.New(err)
-				}
-				return nil
-			})
+			dirEntries[n] = dirEntry
+			n++
 		}
-		err = subgroup.Wait()
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	page := 1
-	batch := make([]Post, 0, config.PostsPerPage)
-	var absoluteDir string
-	switch v := siteGen.fsys.(type) {
-	case interface{ As(any) bool }:
-		var directoryFS *DirectoryFS
-		if v.As(&directoryFS) {
-			absoluteDir = path.Join(directoryFS.RootDir, siteGen.sitePrefix, "posts", category)
-		}
-	}
-	for _, dirEntry := range dirEntries {
-		fileInfo, err := dirEntry.Info()
-		if err != nil {
-			return int64(page), stacktrace.New(err)
-		}
-		name := fileInfo.Name()
-		creationTime := CreationTime(path.Join(absoluteDir, name), fileInfo)
-		timestampPrefix, _, _ := strings.Cut(name, "-")
-		if len(timestampPrefix) > 0 && len(timestampPrefix) <= 8 {
-			b, err := base32Encoding.DecodeString(fmt.Sprintf("%08s", timestampPrefix))
-			if len(b) == 5 && err == nil {
-				var timestamp [8]byte
-				copy(timestamp[len(timestamp)-5:], b)
-				creationTime = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0).UTC()
-			}
-		}
-		batch = append(batch, Post{
-			Category:         category,
-			Name:             strings.TrimSuffix(name, path.Ext(name)),
-			CreationTime:     creationTime,
-			ModificationTime: fileInfo.ModTime(),
-		})
-		if len(batch) >= config.PostsPerPage {
-			currentPage := page
-			page++
-			posts := slices.Clone(batch)
-			batch = batch[:0]
-			group.Go(func() (err error) {
-				defer stacktrace.RecoverPanic(&err)
-				return siteGen.GeneratePostListPage(groupctx, category, tmpl, lastPage, currentPage, posts)
-			})
-		}
-	}
-	if len(batch) > 0 {
+		dirEntries = dirEntries[:n]
+		slices.Reverse(dirEntries)
+		lastPage := int(math.Ceil(float64(len(dirEntries)) / float64(config.PostsPerPage)))
+		group, groupctx := errgroup.WithContext(ctx)
 		group.Go(func() (err error) {
 			defer stacktrace.RecoverPanic(&err)
-			return siteGen.GeneratePostListPage(groupctx, category, tmpl, lastPage, page, batch)
+			dirEntries, err := siteGen.fsys.WithContext(groupctx).ReadDir(path.Join(siteGen.sitePrefix, "output/posts", category))
+			if err != nil {
+				if errors.Is(err, fs.ErrNotExist) {
+					return nil
+				}
+				return stacktrace.New(err)
+			}
+			subgroup, subctx := errgroup.WithContext(groupctx)
+			for _, dirEntry := range dirEntries {
+				dirEntry := dirEntry
+				if !dirEntry.IsDir() {
+					continue
+				}
+				n, err := strconv.ParseInt(dirEntry.Name(), 10, 64)
+				if err != nil {
+					continue
+				}
+				if int(n) <= lastPage {
+					continue
+				}
+				subgroup.Go(func() (err error) {
+					defer stacktrace.RecoverPanic(&err)
+					err = siteGen.fsys.WithContext(subctx).RemoveAll(path.Join(siteGen.sitePrefix, "output/posts", category, strconv.FormatInt(n, 10)))
+					if err != nil {
+						return stacktrace.New(err)
+					}
+					return nil
+				})
+			}
+			err = subgroup.Wait()
+			if err != nil {
+				return err
+			}
+			return nil
 		})
-	}
-	err = group.Wait()
-	if err != nil {
-		return int64(page), err
-	}
-	if page == 1 && len(batch) == 0 {
-		err := siteGen.GeneratePostListPage(ctx, category, tmpl, 1, 1, []Post{})
+		batch := make([]Post, 0, config.PostsPerPage)
+		var absoluteDir string
+		switch v := siteGen.fsys.(type) {
+		case interface{ As(any) bool }:
+			var directoryFS *DirectoryFS
+			if v.As(&directoryFS) {
+				absoluteDir = path.Join(directoryFS.RootDir, siteGen.sitePrefix, "posts", category)
+			}
+		}
+		for _, dirEntry := range dirEntries {
+			fileInfo, err := dirEntry.Info()
+			if err != nil {
+				return int64(page), stacktrace.New(err)
+			}
+			name := fileInfo.Name()
+			creationTime := CreationTime(path.Join(absoluteDir, name), fileInfo)
+			timestampPrefix, _, _ := strings.Cut(name, "-")
+			if len(timestampPrefix) > 0 && len(timestampPrefix) <= 8 {
+				b, err := base32Encoding.DecodeString(fmt.Sprintf("%08s", timestampPrefix))
+				if len(b) == 5 && err == nil {
+					var timestamp [8]byte
+					copy(timestamp[len(timestamp)-5:], b)
+					creationTime = time.Unix(int64(binary.BigEndian.Uint64(timestamp[:])), 0).UTC()
+				}
+			}
+			batch = append(batch, Post{
+				Category:         category,
+				Name:             strings.TrimSuffix(name, path.Ext(name)),
+				CreationTime:     creationTime,
+				ModificationTime: fileInfo.ModTime(),
+			})
+			if len(batch) >= config.PostsPerPage {
+				currentPage := page
+				page++
+				posts := slices.Clone(batch)
+				batch = batch[:0]
+				group.Go(func() (err error) {
+					defer stacktrace.RecoverPanic(&err)
+					return siteGen.GeneratePostListPage(groupctx, category, tmpl, lastPage, currentPage, posts)
+				})
+			}
+		}
+		if len(batch) > 0 {
+			group.Go(func() (err error) {
+				defer stacktrace.RecoverPanic(&err)
+				return siteGen.GeneratePostListPage(groupctx, category, tmpl, lastPage, page, batch)
+			})
+		}
+		err = group.Wait()
 		if err != nil {
 			return int64(page), err
+		}
+		if page == 1 && len(batch) == 0 {
+			err := siteGen.GeneratePostListPage(ctx, category, tmpl, 1, 1, []Post{})
+			if err != nil {
+				return int64(page), err
+			}
 		}
 	}
 	return int64(page), nil
 }
 
+// GeneratePostListPage generates a post list page for a category. The category
+// argument is the category that the post list belongs to, tmpl is the post
+// list template, lastPage is the last page number, currentPage is the current
+// page number of the post list page to be generated and posts is the list of
+// posts for the current page.
 func (siteGen *SiteGenerator) GeneratePostListPage(ctx context.Context, category string, tmpl *template.Template, lastPage, currentPage int, posts []Post) error {
 	groupA, groupctxA := errgroup.WithContext(ctx)
 	for i := range posts {
@@ -1763,12 +1792,12 @@ func (siteGen *SiteGenerator) GeneratePostListPage(ctx context.Context, category
 		groupA.Go(func() (err error) {
 			defer stacktrace.RecoverPanic(&err)
 			outputDir := path.Join(siteGen.sitePrefix, "output/posts", posts[i].Category, posts[i].Name)
-			databaseFS, ok := &DatabaseFS{}, false
+			databaseFS, isDatabaseFS := &DatabaseFS{}, false
 			switch v := siteGen.fsys.(type) {
 			case interface{ As(any) bool }:
-				ok = v.As(&databaseFS)
+				isDatabaseFS = v.As(&databaseFS)
 			}
-			if ok {
+			if isDatabaseFS {
 				extFilter := sq.Expr("1 = 1")
 				if len(imgExts) > 0 {
 					var b strings.Builder
@@ -2980,12 +3009,12 @@ func (siteGen *SiteGenerator) PostTemplate(ctx context.Context, category string)
 	}
 	var text string
 	var found bool
-	databaseFS, ok := &DatabaseFS{}, false
+	databaseFS, isDatabaseFS := &DatabaseFS{}, false
 	switch v := siteGen.fsys.(type) {
 	case interface{ As(any) bool }:
-		ok = v.As(&databaseFS)
+		isDatabaseFS = v.As(&databaseFS)
 	}
-	if ok {
+	if isDatabaseFS {
 		result, err := sq.FetchOne(ctx, databaseFS.DB, sq.Query{
 			Dialect: databaseFS.Dialect,
 			Format:  "SELECT {*} FROM files WHERE file_path = {filePath}",
@@ -3061,12 +3090,12 @@ func (siteGen *SiteGenerator) PostListTemplate(ctx context.Context, category str
 	var err error
 	var text string
 	var found bool
-	databaseFS, ok := &DatabaseFS{}, false
+	databaseFS, isDatabaseFS := &DatabaseFS{}, false
 	switch v := siteGen.fsys.(type) {
 	case interface{ As(any) bool }:
-		ok = v.As(&databaseFS)
+		isDatabaseFS = v.As(&databaseFS)
 	}
-	if ok {
+	if isDatabaseFS {
 		result, err := sq.FetchOne(ctx, databaseFS.DB, sq.Query{
 			Dialect: databaseFS.Dialect,
 			Format:  "SELECT {*} FROM files WHERE file_path = {filePath}",
