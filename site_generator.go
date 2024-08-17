@@ -1444,8 +1444,7 @@ type PostListData struct {
 }
 
 // GeneratePostList generates the post list for a category, which contain one
-// or more post list pages. The category argument is the category that the post
-// list belongs to, tmpl is the post list template.
+// or more post list pages.
 func (siteGen *SiteGenerator) GeneratePostList(ctx context.Context, category string, tmpl *template.Template) (int64, error) {
 	var config struct {
 		PostsPerPage int
@@ -1725,11 +1724,8 @@ func (siteGen *SiteGenerator) GeneratePostList(ctx context.Context, category str
 	return int64(page), nil
 }
 
-// GeneratePostListPage generates a post list page for a category. The category
-// argument is the category that the post list belongs to, tmpl is the post
-// list template, lastPage is the last page number, currentPage is the current
-// page number of the post list page to be generated and posts is the list of
-// posts for the current page.
+// GeneratePostListPage generates a singular page of the post list for a
+// category.
 func (siteGen *SiteGenerator) GeneratePostListPage(ctx context.Context, category string, tmpl *template.Template, lastPage, currentPage int, posts []Post) error {
 	groupA, groupctxA := errgroup.WithContext(ctx)
 	for i := range posts {
@@ -2137,12 +2133,22 @@ func (siteGen *SiteGenerator) GeneratePostListPage(ctx context.Context, category
 	return nil
 }
 
+// TemplateError is used to represent an error when parsing or executing a
+// template.
 type TemplateError struct {
-	Name         string `json:"name"`
-	Line         int    `json:"line"`
+	// Name of the template that caused the error.
+	Name string `json:"name"`
+
+	// Line number in the template that caused the error.
+	Line int `json:"line"`
+
+	// ErrorMessage of the error.
 	ErrorMessage string `json:"errorMessage"`
 }
 
+// NewTemplateError constructs a new TemplateError from an error returned by
+// the html/template package by parsing the error string, which is
+// unfortunately the only way we can extract the template name and line number.
 func NewTemplateError(err error) error {
 	sections := strings.SplitN(err.Error(), ":", 4)
 	if len(sections) < 4 || strings.TrimSpace(sections[0]) != "template" {
@@ -2167,6 +2173,7 @@ func NewTemplateError(err error) error {
 	}
 }
 
+// Error implements the error interface.
 func (templateErr TemplateError) Error() string {
 	if templateErr.Name == "" {
 		return templateErr.ErrorMessage
@@ -2177,6 +2184,9 @@ func (templateErr TemplateError) Error() string {
 	return templateErr.Name + ":" + strconv.Itoa(templateErr.Line) + ": " + templateErr.ErrorMessage
 }
 
+// rewriteURLs parses a stream of incoming HTML from a reader and writes it
+// into a writer, rewriting any image URLs it finds to use the CDN domain
+// instead.
 func (siteGen *SiteGenerator) rewriteURLs(writer io.Writer, reader io.Reader, urlPath string) error {
 	tokenizer := html.NewTokenizer(reader)
 	for {
@@ -2283,6 +2293,7 @@ func (siteGen *SiteGenerator) rewriteURLs(writer io.Writer, reader io.Reader, ur
 	}
 }
 
+// baseFuncMap is the base funcMap used for all user templates.
 var baseFuncMap = map[string]any{
 	"dump": func(x any) template.HTML {
 		return template.HTML("<pre>" + template.HTMLEscapeString(spew.Sdump(x)) + "</pre>")
@@ -2329,11 +2340,11 @@ var baseFuncMap = map[string]any{
 			if layout, ok := layout.(string); ok {
 				switch offset := offset.(type) {
 				case int:
-					return t.In(time.FixedZone("", offset)).Format(toString(layout))
+					return t.In(time.FixedZone("", offset)).Format(layout)
 				case int64:
-					return t.In(time.FixedZone("", int(offset))).Format(toString(layout))
+					return t.In(time.FixedZone("", int(offset))).Format(layout)
 				case float64:
-					return t.In(time.FixedZone("", int(offset))).Format(toString(layout))
+					return t.In(time.FixedZone("", int(offset))).Format(layout)
 				default:
 					return fmt.Sprintf("not a number: %#v", offset)
 				}
@@ -2343,7 +2354,6 @@ var baseFuncMap = map[string]any{
 		return fmt.Sprintf("not a time.Time: %#v", t)
 	},
 	"htmlHeadings": func(x any) ([]Heading, error) {
-		// TODO: reconsider this.
 		switch x := x.(type) {
 		case string:
 			return tableOfContentsHeadings(strings.NewReader(x))
@@ -2683,30 +2693,23 @@ var baseFuncMap = map[string]any{
 	},
 }
 
-func toString(v any) string {
-	switch v := v.(type) {
-	case nil:
-		return ""
-	case string:
-		return v
-	case int:
-		return strconv.Itoa(v)
-	case int64:
-		return strconv.FormatInt(v, 10)
-	case float64:
-		return strconv.FormatFloat(v, 'f', -1, 64)
-	default:
-		return fmt.Sprint(v)
-	}
-}
-
+// Heading represents a markdown heading.
 type Heading struct {
-	ID          string
-	Title       string
-	Level       int
+	// ID of the heading.
+	ID string
+
+	// Title of the heading.
+	Title string
+
+	// Level of the heading i.e. for h1 - h6.
+	Level int
+
+	// Subheadings of the heading.
 	Subheadings []Heading
 }
 
+// tableOfContentsHeadings parses a stream of HTML from a reader and returns a
+// list of top-level headings that have an id defined on them.
 func tableOfContentsHeadings(reader io.Reader) ([]Heading, error) {
 	var headingLevel int
 	var headingID string
@@ -2804,15 +2807,28 @@ func tableOfContentsHeadings(reader io.Reader) ([]Heading, error) {
 	}
 }
 
+// Pagination represents the pagination information for a post list.
 type Pagination struct {
-	First    int
+	// First page.
+	First int
+
+	// Previous page.
 	Previous int
-	Current  int
-	Next     int
-	Last     int
-	Numbers  []int
+
+	// Current page.
+	Current int
+
+	// Next page.
+	Next int
+
+	// Last page.
+	Last int
+
+	// Numbers is the list of page numbers to display.
+	Numbers []int
 }
 
+// NewPagination constructs a new pagination for a given range of pages.
 func NewPagination(currentPage, lastPage, visiblePages int) Pagination {
 	const numConsecutiveNeighbours = 2
 	if visiblePages%2 == 0 {
@@ -2968,6 +2984,7 @@ func NewPagination(currentPage, lastPage, visiblePages int) Pagination {
 	return pagination
 }
 
+// AtomFeed represents an atom feed (i.e. a list of posts).
 type AtomFeed struct {
 	XMLName xml.Name    `xml:"feed"`
 	Xmlns   string      `xml:"xmlns,attr"`
@@ -2978,6 +2995,7 @@ type AtomFeed struct {
 	Entry   []AtomEntry `xml:"entry"`
 }
 
+// AtomEntry represents an atom entry (i.e. a post).
 type AtomEntry struct {
 	ID        string     `xml:"id"`
 	Title     string     `xml:"title"`
@@ -2988,21 +3006,25 @@ type AtomEntry struct {
 	Content   AtomCDATA  `xml:"content"`
 }
 
+// AtomLink represents an atom link.
 type AtomLink struct {
 	Href string `xml:"href,attr"`
 	Rel  string `xml:"rel,attr"`
 }
 
+// AtomText represents some text in atom.
 type AtomText struct {
 	Type    string `xml:"type,attr"`
 	Content string `xml:",chardata"`
 }
 
+// AtomCDATA represents CDATA in atom.
 type AtomCDATA struct {
 	Type    string `xml:"type,attr"`
 	Content string `xml:",cdata"`
 }
 
+// PostTemplate returns the post template for a category.
 func (siteGen *SiteGenerator) PostTemplate(ctx context.Context, category string) (*template.Template, error) {
 	if strings.Contains(category, "/") {
 		return nil, stacktrace.New(fmt.Errorf("invalid post category"))
@@ -3083,6 +3105,7 @@ func (siteGen *SiteGenerator) PostTemplate(ctx context.Context, category string)
 	return tmpl, nil
 }
 
+// PostListTemplate returns the post list template for a category.
 func (siteGen *SiteGenerator) PostListTemplate(ctx context.Context, category string) (*template.Template, error) {
 	if strings.Contains(category, "/") {
 		return nil, stacktrace.New(fmt.Errorf("invalid post category"))
