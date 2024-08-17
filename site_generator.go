@@ -386,7 +386,8 @@ func (siteGen *SiteGenerator) parseTemplate(ctx context.Context, name, text stri
 			}
 		}
 	}
-	// Sort externalNames so that looping through them becomes deterministic.
+	// Sort the list of external template names so that looping through them
+	// becomes deterministic.
 	slices.Sort(externalNames)
 	externalNames = slices.Compact(externalNames)
 	group, groupctx := errgroup.WithContext(ctx)
@@ -402,7 +403,6 @@ func (siteGen *SiteGenerator) parseTemplate(ctx context.Context, name, text stri
 					ErrorMessage: "circular template reference: " + strings.Join(callers[n:], "=>") + " => " + externalName,
 				}
 			}
-
 			// If a template is currently being parsed, wait for it to finish
 			// before checking the templateCache for the result.
 			siteGen.mutex.RLock()
@@ -524,44 +524,73 @@ func (siteGen *SiteGenerator) parseTemplate(ctx context.Context, name, text stri
 	return finalTemplate.Lookup(name), nil
 }
 
+// PageData is the data used to render a page.
 type PageData struct {
-	Site             Site
-	Parent           string
-	Name             string
-	ChildPages       []Page
-	ContentMap       map[string]string
-	Images           []Image
-	ModificationTime time.Time
-	CreationTime     time.Time
-}
+	// Site information.
+	Site Site
 
-type Asset struct {
-	Parent  string
-	Name    string
-	AltText string
-	Content string
-}
-
-type Page struct {
+	// Parent URL of the page.
 	Parent string
-	Name   string
-	Title  string
+
+	// Name of the page.
+	Name string
+
+	// ChildPages of the page.
+	ChildPages []Page
+
+	// ContentMap of markdown file names to their file contents. Convert it to
+	// HTML using the markdownToHTML template function.
+	ContentMap map[string]string
+
+	// Images belonging to the page.
+	Images []Image
+
+	// ModificationTime of the page.
+	ModificationTime time.Time
+
+	// CreationTime of the page.
+	CreationTime time.Time
 }
 
+// Page contains metadata about a page.
+type Page struct {
+	// Parent URL of the page.
+	Parent string
+
+	// Name of the page.
+	Name string
+
+	// Title of the page.
+	Title string
+}
+
+// Image contains metadata about an image.
 type Image struct {
-	Parent  string
-	Name    string
+	// Parent URL of the image.
+	Parent string
+
+	// Name of the image.
+	Name string
+
+	// AltText of the image.
 	AltText string
+
+	// Caption of the image.
 	Caption string
 }
 
+// GeneratePage generates a page. filePath is the file path to the source .html
+// page in the pages/ directory, text is the source text of the page, modTime
+// and creationTime are when the page was modified and created.
 func (siteGen *SiteGenerator) GeneratePage(ctx context.Context, filePath, text string, modTime, creationTime time.Time) error {
+	// urlPath is the URL of the resultant page.
 	urlPath := strings.TrimPrefix(filePath, "pages/")
 	if urlPath == "index.html" {
 		urlPath = ""
 	} else {
 		urlPath = strings.TrimSuffix(urlPath, path.Ext(urlPath))
 	}
+	// outputDir is where we will render the page output to.
 	outputDir := path.Join(siteGen.sitePrefix, "output", urlPath)
 	pageData := PageData{
 		Site:             siteGen.Site,
@@ -582,6 +611,7 @@ func (siteGen *SiteGenerator) GeneratePage(ctx context.Context, filePath, text s
 	var err error
 	var tmpl *template.Template
 	group, groupctx := errgroup.WithContext(ctx)
+	// Parse the page template.
 	group.Go(func() (err error) {
 		defer stacktrace.RecoverPanic(&err)
 		tmpl, err = siteGen.ParseTemplate(groupctx, "/"+filePath, text)
@@ -590,6 +620,7 @@ func (siteGen *SiteGenerator) GeneratePage(ctx context.Context, filePath, text s
 		}
 		return nil
 	})
+	// Fetch all the images and markdown files that belong to the page.
 	group.Go(func() (err error) {
 		defer stacktrace.RecoverPanic(&err)
 		markdownMu := sync.Mutex{}
@@ -741,6 +772,7 @@ func (siteGen *SiteGenerator) GeneratePage(ctx context.Context, filePath, text s
 		}
 		return nil
 	})
+	// Fetch the child pages of the page.
 	group.Go(func() (err error) {
 		defer stacktrace.RecoverPanic(&err)
 		pageDir := path.Join(siteGen.sitePrefix, "pages", urlPath)
@@ -881,6 +913,7 @@ func (siteGen *SiteGenerator) GeneratePage(ctx context.Context, filePath, text s
 	if pageData.ChildPages == nil {
 		pageData.ChildPages = []Page{}
 	}
+	// Prepare the writer.
 	writer, err := siteGen.fsys.WithContext(ctx).OpenWriter(path.Join(outputDir, "index.html"), 0644)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
@@ -896,6 +929,7 @@ func (siteGen *SiteGenerator) GeneratePage(ctx context.Context, filePath, text s
 		}
 	}
 	defer writer.Close()
+	// Write the necessary HTML boilerplate for every page.
 	_, err = io.Copy(writer, strings.NewReader("<!DOCTYPE html>\n"+
 		"<html lang='"+template.HTMLEscapeString(siteGen.Site.LanguageCode)+"'>\n"+
 		"<meta charset='utf-8'>\n"+
@@ -910,6 +944,7 @@ func (siteGen *SiteGenerator) GeneratePage(ctx context.Context, filePath, text s
 	case interface{ As(any) bool }:
 		isDatabaseFS = v.As(&DatabaseFS{})
 	}
+	// Execute the page template into the writer.
 	if siteGen.cdnDomain != "" && isDatabaseFS {
 		pipeReader, pipeWriter := io.Pipe()
 		result := make(chan error, 1)
@@ -947,17 +982,38 @@ func (siteGen *SiteGenerator) GeneratePage(ctx context.Context, filePath, text s
 	return nil
 }
 
+// PostData is the data used to render a post.
 type PostData struct {
-	Site             Site
-	Category         string
-	Name             string
-	Title            string
-	Content          string
-	Images           []Image
-	CreationTime     time.Time
+	// Site information.
+	Site Site
+
+	// Category of the post.
+	Category string
+
+	// Name of the post.
+	Name string
+
+	// Title of the post.
+	Title string
+
+	// Content of the post.
+	Content string
+
+	// Images belonging to the post that are not already explicitly included in
+	// the post content.
+	Images []Image
+
+	// CreationTime of the post.
+	CreationTime time.Time
+
+	// ModificationTime of the post.
 	ModificationTime time.Time
 }
 
+// GeneratePost generates a post. filePath is the file path to the source .md
+// post in the posts/ directory, text is the source text of the post, modTime
+// and creationTime are when the post was modified and created, tmpl is the
+// post template.
 func (siteGen *SiteGenerator) GeneratePost(ctx context.Context, filePath, text string, modTime, creationTime time.Time, tmpl *template.Template) error {
 	timestampPrefix, _, _ := strings.Cut(path.Base(filePath), "-")
 	if len(timestampPrefix) > 0 && len(timestampPrefix) <= 8 {
@@ -1224,6 +1280,8 @@ func (siteGen *SiteGenerator) GeneratePost(ctx context.Context, filePath, text s
 	return nil
 }
 
+// GeneratePosts generates all posts for a given category. tmpl is the post
+// template.
 func (siteGen *SiteGenerator) GeneratePosts(ctx context.Context, category string, tmpl *template.Template) (int64, error) {
 	databaseFS, ok := &DatabaseFS{}, false
 	switch v := siteGen.fsys.(type) {
@@ -2879,14 +2937,6 @@ func NewPagination(currentPage, lastPage, visiblePages int) Pagination {
 	// Convert the page numbers in the slots to strings.
 	pagination.Numbers = slots
 	return pagination
-}
-
-func (p Pagination) All() []int {
-	numbers := make([]int, 0, p.Last)
-	for page := 1; page <= p.Last; page++ {
-		numbers = append(numbers, page)
-	}
-	return numbers
 }
 
 type AtomFeed struct {
