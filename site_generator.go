@@ -166,6 +166,7 @@ func NewSiteGenerator(ctx context.Context, siteGenConfig SiteGeneratorConfig) (*
 		Description     string
 		NavigationLinks []NavigationLink
 	}
+	// Read from the site's site.json.
 	b, err := fs.ReadFile(siteGen.fsys, path.Join(siteGen.sitePrefix, "site.json"))
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, stacktrace.New(err)
@@ -200,6 +201,8 @@ func NewSiteGenerator(ctx context.Context, siteGenConfig SiteGeneratorConfig) (*
 		}
 		config.Favicon = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>" + emoji + "</text></svg>"
 	}
+	// Prepare the site's markdown parser and renderer based on their code
+	// syntax highlighter style.
 	siteGen.markdown = goldmark.New(
 		goldmark.WithParserOptions(
 			parser.WithAttribute(),
@@ -207,7 +210,7 @@ func NewSiteGenerator(ctx context.Context, siteGenConfig SiteGeneratorConfig) (*
 		goldmark.WithExtensions(
 			highlighting.NewHighlighting(
 				highlighting.WithStyle(config.CodeStyle),
-				highlighting.WithFormatOptions(chromahtml.TabWidth(4)),
+				highlighting.WithFormatOptions(chromahtml.TabWidth(2)),
 			),
 			extension.Footnote,
 			extension.CJK,
@@ -223,8 +226,13 @@ func NewSiteGenerator(ctx context.Context, siteGenConfig SiteGeneratorConfig) (*
 		siteGen.funcMap[name] = fn
 	}
 	siteGen.funcMap["markdownToHTML"] = func(x any) (template.HTML, error) {
-		if x, ok := x.(string); ok {
-			return markdownToHTML(siteGen.markdown, x)
+		if s, ok := x.(string); ok {
+			var b strings.Builder
+			err := siteGen.markdown.Convert([]byte(s), &b)
+			if err != nil {
+				return "", err
+			}
+			return template.HTML(b.String()), nil
 		}
 		return "", fmt.Errorf("%#v is not a string", x)
 	}
@@ -316,11 +324,16 @@ func NewSiteGenerator(ctx context.Context, siteGenConfig SiteGeneratorConfig) (*
 	return siteGen, nil
 }
 
-// ParseTemplate parses TODO:
+// ParseTemplate parses text as a template body for name. Template references
+// starting with "/themes/" and ending in ".html" will be looked for in the
+// site's themes folder.
 func (siteGen *SiteGenerator) ParseTemplate(ctx context.Context, name, text string) (*template.Template, error) {
 	return siteGen.parseTemplate(ctx, name, text, nil)
 }
 
+// parseTemplate is the auxiliary recursive function that ParseTemplate calls.
+// The callers argument is used to keep track of the templates responsible for
+// calling parseTemplate each time, so that we can detect if we are in a loop.
 func (siteGen *SiteGenerator) parseTemplate(ctx context.Context, name, text string, callers []string) (*template.Template, error) {
 	currentTemplate, err := template.New(name).Funcs(siteGen.funcMap).Parse(text)
 	if err != nil {
@@ -339,7 +352,6 @@ func (siteGen *SiteGenerator) parseTemplate(ctx context.Context, name, text stri
 			}
 		}
 	}
-
 	// Get the list of external templates referenced by the current template.
 	var externalNames []string
 	var node parse.Node
@@ -374,10 +386,9 @@ func (siteGen *SiteGenerator) parseTemplate(ctx context.Context, name, text stri
 			}
 		}
 	}
-	// sort | uniq deduplication.
+	// Sort externalNames so that looping through them becomes deterministic.
 	slices.Sort(externalNames)
 	externalNames = slices.Compact(externalNames)
-
 	group, groupctx := errgroup.WithContext(ctx)
 	externalTemplates := make([]*template.Template, len(externalNames))
 	for i, externalName := range externalNames {
@@ -415,7 +426,6 @@ func (siteGen *SiteGenerator) parseTemplate(ctx context.Context, name, text stri
 				externalTemplates[i] = cachedTemplate
 				return nil
 			}
-
 			// We put a nil pointer into the templateCache first. This is to
 			// indicate that we have already seen this template. If parsing
 			// succeeds, we simply overwrite the nil entry with the parsed
@@ -437,7 +447,6 @@ func (siteGen *SiteGenerator) parseTemplate(ctx context.Context, name, text stri
 				close(wait)
 				siteGen.mutex.Unlock()
 			}()
-
 			file, err := siteGen.fsys.WithContext(groupctx).Open(path.Join(siteGen.sitePrefix, "output", externalName))
 			if err != nil {
 				if errors.Is(err, fs.ErrNotExist) {
@@ -491,7 +500,6 @@ func (siteGen *SiteGenerator) parseTemplate(ctx context.Context, name, text stri
 	if err != nil {
 		return nil, err
 	}
-
 	finalTemplate := template.New(name).Funcs(siteGen.funcMap)
 	for i, externalTemplate := range externalTemplates {
 		for _, tmpl := range externalTemplate.Templates() {
@@ -2603,15 +2611,6 @@ func toString(v any) string {
 	default:
 		return fmt.Sprint(v)
 	}
-}
-
-func markdownToHTML(markdown goldmark.Markdown, s string) (template.HTML, error) {
-	var b strings.Builder
-	err := markdown.Convert([]byte(s), &b)
-	if err != nil {
-		return "", err
-	}
-	return template.HTML(b.String()), nil
 }
 
 type Heading struct {
