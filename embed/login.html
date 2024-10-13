@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<script type='module' src='/files/static/login-01kcb62r.js'></script>
+{{- if $.RequireCaptcha }}
+<script src='{{ $.CaptchaWidgetScriptSrc }}' async defer></script>
+{{- end }}
+<title>Login</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+</nav>
+<form method='post' class='w-80 w-70-m w-60-l center' data-login-validation>
+  <h1 class='f3 mv3 b tc'>Login</h1>
+  {{- if eq (index $.PostRedirectGet "from") "invite" }}
+  <div role='alert' class='w-100 br2 ph3 pv2 ba alert'>
+    <div>Account created, please log in using your new credentials.</div>
+  </div>
+  {{- end }}
+  {{- if eq (index $.PostRedirectGet "from") "resetpassword" }}
+  <div role='alert' class='w-100 br2 ph3 pv2 ba alert'>
+    {{- if index $.PostRedirectGet "emailSent" }}
+    <div>Password reset email sent (please check your spam folder if you do not see it).</div>
+    {{- else }}
+    <div>Password reset successfully, please log in using your new credentials.</div>
+    {{- end }}
+  </div>
+  {{- end }}
+  {{- if eq (index $.PostRedirectGet "from") "changepassword" }}
+  <div role='alert' class='w-100 br2 ph3 pv2 ba alert'>
+    <div>Password changed successfully, please log in using your new credentials.</div>
+  </div>
+  {{- end }}
+  {{- if eq $.Error "AlreadyAuthenticated" }}
+  <div role='alert' class='w-100 br2 ph3 pv2 ba alert'>
+    <div>You are already logged in, <a href='/files/'>click here to go to your dashboard</a>.</div>
+  </div>
+  {{- else if eq $.Error "RetryWithCaptcha" }}
+  <div role='alert' class='w-100 br2 ph3 pv2 ba alert'>
+    <div>Please retry with captcha.</div>
+  </div>
+  {{- else if eq $.Error "CaptchaChallengeFailed" }}
+  <div role='alert' class='w-100 br2 ph3 pv2 ba alert'>
+    <div>Captcha challenge failed.</div>
+  </div>
+  {{- else if eq $.Error "IncorrectLoginCredentials" }}
+  <div role='alert' class='w-100 br2 ph3 pv2 ba alert'>
+    <div>Incorrect login credentials.</div>
+  </div>
+  {{- else if eq $.Error "UserNotFound" }}
+  <div role='alert' class='w-100 br2 ph3 pv2 ba alert'>
+    <div>User not found.</div>
+  </div>
+  {{- else if eq $.Error "NotAuthenticated" }}
+  <div role='alert' class='w-100 br2 ph3 pv2 ba alert'>
+    <div>Please log in.</div>
+  </div>
+  {{- end }}
+  <div class='mv3'>
+    <div><label for='username' class='b'>Username or Email:</label></div>
+    <input id='username' name='username' value='{{ $.Username }}' class='pv1 ph2 br2 ba w-100{{ if index $.FormErrors "username" }} b--invalid-red{{ end }}' autocomplete='on' required{{ if eq (index $.PostRedirectGet "from") "resetpassword" }} autofocus{{ end }}>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "username" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <div class='mv3'>
+    <div><label for='password' class='b'>Password:</label></div>
+    <input id='password' type='password' name='password' class='w-100 pv1 ph2 br2 ba w-100{{ if index $.FormErrors "password" }} b--invalid-red{{ end }}' autocomplete='on' required>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "password" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  {{- if $.HasMailer }}
+  <div class='f6'><a href='/users/resetpassword/'>forgot password?</a></div>
+  {{- end }}
+  {{- if $.Redirect }}
+  <input type='hidden' name='$.Redirect' value='{{ $.Redirect }}'>
+  {{- end }}
+  {{- if $.RequireCaptcha }}
+  <div class='{{ $.CaptchaWidgetClass }}' data-sitekey='{{ $.CaptchaSiteKey }}' data-captcha-response-name='{{ $.CaptchaResponseName }}'></div>
+  {{- end }}
+  <div role='status'></div>
+  <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>Log in</button>
+</form>

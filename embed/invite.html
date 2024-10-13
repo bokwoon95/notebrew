@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>invite</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  <span class='flex-grow-1'></span>
+</nav>
+{{- if eq $.Error "AlreadyAuthenticated" }}
+<div>
+  <div class='mv3 b tc'>You are already logged in, <a href='/files/'>click here to go to your dashboard</a>.</div>
+</div>
+{{- else if eq $.Error "InvalidInviteToken" "MissingInviteToken" }}
+<div>
+  <div class='mv3 b tc'>Invalid invite token.</div>
+</div>
+{{- else }}
+<form method='post' data-prevent-double-submit>
+  <h2 class='ma0 b'>Create an account</h2>
+  <div><span class='dark-red'>*&nbsp;</span><em>required</em></div>
+  {{- if eq $.Error "FormErrorsPresent" }}
+  <div role='alert' class='w-100 br2 ph3 pv2 ba alert'>
+    <div>please fix the errors</div>
+  </div>
+  {{- end }}
+  <input type='hidden' name='token' value='{{ $.Token }}'>
+  <div class='mv3'>
+    <div><span class='dark-red'>*&nbsp;</span><label for='username' class='b'>Username:</label></div>
+    <ul class='list-style-disc ph3 f6 mid-gray'>
+      <li>only lowercase letters, numbers and hyphen</li>
+      <li>max 30 characters</li>
+    </ul>
+    <input id='username' name='username' value='{{ $.Username }}' class='pv1 ph2 br2 ba w-100{{ if index $.FormErrors "username" }} b--invalid-red{{ end }}' required>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "username" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <div class='mv3'>
+    <div><span class='dark-red'>*&nbsp;</span><label for='email' class='b'>Email:</label></div>
+    {{- if $.ValidateEmail }}
+    <ul class='list-style-disc ph3 f6 mid-gray'>
+      <li>provide the email that you signed up with</li>
+    </ul>
+    {{- end }}
+    <input type='email' id='email' name='email' value='{{ $.Email }}' class='pv1 ph2 br2 ba w-100{{ if index $.FormErrors "email" }} b--invalid-red{{ end }}' required>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "email" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <div class='mv3'>
+    <div><span class='dark-red'>*&nbsp;</span><label for='password' class='b'>Password:</label></div>
+    <ul class='list-style-disc ph3 f6 mid-gray'>
+      <li>at least 8 characters</li>
+    </ul>
+    <input type='password' id='password' name='password' class='pv1 ph2 br2 ba w-100{{ if index $.FormErrors "password" }} b--invalid-red{{ end }}' required>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "password" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <div class='mv3'>
+    <div><span class='dark-red'>*&nbsp;</span><label for='confirmPassword' class='b'>Confirm password:</label></div>
+    <input type='password' id='confirmPassword' name='confirmPassword' class='pv1 ph2 br2 ba w-100{{ if index $.FormErrors "confirmPassword" }} b--invalid-red{{ end }}' required>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "confirmPassword" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <div class='mv3'>
+    <div><label for='timezoneOffsetSeconds' class='b'>Preferred timezone offset:</label></div>
+    <select id='timezoneOffsetSeconds' name='timezoneOffsetSeconds' class='br2 {{ if index $.FormErrors "timezoneOffsetSeconds" }} b--invalid-red{{ end }}'>
+      <option value='-43200'>-12:00</option>
+      <option value='-39600'>-11:00</option>
+      <option value='-36000'>-10:00</option>
+      <option value='-34200'>-09:30</option>
+      <option value='-32400'>-09:00</option>
+      <option value='-28800'>-08:00</option>
+      <option value='-25200'>-07:00</option>
+      <option value='-21600'>-06:00</option>
+      <option value='-18000'>-05:00</option>
+      <option value='-14400'>-04:00</option>
+      <option value='-10800'>-03:00</option>
+      <option value='-7200'>-02:00</option>
+      <option value='-3600'>-01:00</option>
+      <option value='0' selected>+00:00</option>
+      <option value='3600'>+01:00</option>
+      <option value='7200'>+02:00</option>
+      <option value='10800'>+03:00</option>
+      <option value='12600'>+03:30</option>
+      <option value='14400'>+04:00</option>
+      <option value='16200'>+04:30</option>
+      <option value='18000'>+05:00</option>
+      <option value='19800'>+05:30</option>
+      <option value='20700'>+05:45</option>
+      <option value='21600'>+06:00</option>
+      <option value='23400'>+06:30</option>
+      <option value='25200'>+07:00</option>
+      <option value='28800'>+08:00</option>
+      <option value='31500'>+08:45</option>
+      <option value='32400'>+09:00</option>
+      <option value='34200'>+09:30</option>
+      <option value='36000'>+10:00</option>
+      <option value='37800'>+10:30</option>
+      <option value='39600'>+11:00</option>
+      <option value='43200'>+12:00</option>
+      <option value='45900'>+12:45</option>
+      <option value='46800'>+13:00</option>
+      <option value='50400'>+14:00</option>
+    </select>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "timezoneOffsetSeconds" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <fieldset>
+    <legend><h3 class='mv0 mh2'>Create a site (optional, you can create a site later)</h3></legend>
+    <div class='mv3'>
+      <div><label for='siteName' class='b'>Name:</label></div>
+      <ul class='list-style-disc ph3 f6 mid-gray'>
+        <li>only lowercase letters, numbers and hyphen</li>
+        <li>max 30 characters</li>
+      </ul>
+      <div class=''>
+        <input id='siteName' name='siteName' value='{{ $.SiteName }}' class='pv1 ph2 br2 ba{{ if index $.FormErrors "siteName" }} b--invalid-red{{ end }}'>
+        <span>.nbrew.net</span>
+      </div>
+      <ul class='list-style-disc ph3 f6 invalid-red'>
+        {{- range $error := index $.FormErrors "siteName" }}
+        <li>{{ $error }}</li>
+        {{- end }}
+      </ul>
+    </div>
+    <div class='mv3'>
+      <div><label for='siteTitle' class='b'>Title:</label></div>
+      <input id='siteTitle' name='siteTitle' value='{{ $.SiteTitle }}' class='pv1 ph2 br2 ba w-100{{ if index $.FormErrors "siteTitle" }} b--invalid-red{{ end }}'>
+      <ul class='list-style-disc ph3 f6 invalid-red'>
+        {{- range $error := index $.FormErrors "siteTitle" }}
+        <li>{{ $error }}</li>
+        {{- end }}
+      </ul>
+    </div>
+    <div class='mv3'>
+      <div><label for='siteDescription' class='b'>Description:</label></div>
+      <textarea id='siteDescription' name='siteDescription' class='min-h4 pv1 ph2 br2 ba w-100{{ if index $.FormErrors "siteDescription" }} b--invalid-red{{ end }}'>{{ $.SiteDescription }}</textarea>
+      <ul class='list-style-disc ph3 f6 invalid-red'>
+        {{- range $error := index $.FormErrors "siteDescription" }}
+        <li>{{ $error }}</li>
+        {{- end }}
+      </ul>
+    </div>
+  </fieldset>
+  <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>create account</button>
+  <div role='status'></div>
+</form>
+{{- end }}

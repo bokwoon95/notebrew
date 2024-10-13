@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>import file{{ if $.SitePrefix }} - {{ $.SitePrefix }}{{ end }}</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  {{- if $.SitePrefix }}
+  &bull;<a href='/{{ join "files" $.SitePrefix }}/' class='ma2 white'>{{ $.SitePrefix }}</a>
+  {{- end }}
+  &bull;<a href='{{ $.ContentBaseURL }}' class='ma2 white'>view site</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if eq $.Error "FileNotExist" "InvalidFileType" }}
+<div>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <div class='mv3 b tc'>No file to import</div>
+</div>
+{{- else if eq $.Error "ImportLimitReached" }}
+<div>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <div class='mv3 b tc'>There is an ongoing import, please try again once it has completed or <a href='/{{ join "files" $.SitePrefix "imports" }}/'>cancel it from the imports page</a></div>
+</div>
+{{- else }}
+<form method='post' data-prevent-double-submit='{"statusText":"importing, please wait..."}'>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <h3 class='mv3 b'>Import <a href='/{{ join "files" $.SitePrefix "imports" $.TgzFileName }}'>{{ $.TgzFileName }}</a>? ({{ humanReadableFileSize $.Size }})</h3>
+  <div class='mv3 flex items-center'>
+    <input id='root:output/themes' type='radio' name='root' value='output/themes' class='pointer' checked>
+    <label for='root:output/themes' class='pointer ml2'>import only themes</label>
+  </div>
+  <div class='mv3 flex items-center'>
+    <input id='root:' type='radio' name='root' value='' class='pointer'>
+    <label for='root:' class='pointer ml2'>import all files</label>
+  </div>
+  <div class='mv3 flex items-center'>
+    <input id='overwriteExistingFiles' type='checkbox' name='overwriteExistingFiles' class='pointer'>
+    <label for='overwriteExistingFiles' class='pointer ml2'>overwrite existing files</label>
+  </div>
+  <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>import</button>
+  <div role='status'></div>
+</form>
+{{- end }}

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>Logout</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+</nav>
+<form method='post' class='w-80 w-70-m w-60-l center' data-prevent-double-submit>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <h3 class='f4 mv2 b tc'>Are you sure you wish to log out?</h3>
+  <button type='submit' class='button ba br2 b--black pa2 w-100'>log out</button>
+</form>

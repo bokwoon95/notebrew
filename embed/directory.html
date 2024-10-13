@@ -1,0 +1,617 @@
+{{- $readOnly := and (eq (head $.FilePath) "output") (ne (head (tail $.FilePath)) "themes") }}
+{{- $clipboard := clipboard }}
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>
+  {{- if $.FilePath }}
+  {{ base $.FilePath }}{{ if $.SitePrefix }} - {{ $.SitePrefix }}{{ end }}
+  {{- else }}
+  files{{ if $.SitePrefix }} - {{ $.SitePrefix }}{{ end }}
+  {{- end }}
+</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  {{- if $.SitePrefix }}
+  &bull;<a href='/{{ join "files" $.SitePrefix }}/' class='ma2 white'>{{ $.SitePrefix }}</a>
+  {{- end }}
+  &bull;<a href='{{ $.ContentBaseURL }}' class='ma2 white'>view site</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if eq (index $.PostRedirectGet "from") "regenerate" }}
+  {{- if not $.RegenerationStats.TemplateError.ErrorMessage }}
+  <div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+    <div class='pv1'>
+      <div>regenerated site ({{ $.RegenerationStats.Count }} file{{ if ne $.RegenerationStats.Count 1 }}s{{ end }} in {{ $.RegenerationStats.TimeTaken }}): <a href='{{ $.ContentBaseURL }}'>view</a></div>
+    </div>
+    <div class='flex-grow-1'></div>
+    <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+  </div>
+  {{- end }}
+{{- end }}
+{{- if eq (index $.PostRedirectGet "from") "createfolder" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  {{- $parent := index $.PostRedirectGet "parent" }}
+  {{- $name := index $.PostRedirectGet "name" }}
+  <div class='pv1'>
+    {{- if eq $parent "posts" }}
+    created category <a href='/{{ join "files" $.SitePrefix $parent $name }}/'>{{ $name }}</a>
+    {{- else }}
+    created folder <a href='/{{ join "files" $.SitePrefix $parent $name }}/'>{{ $name }}</a>
+    {{- end }}
+  </div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- if eq (index $.PostRedirectGet "from") "delete" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  {{- $numDeleted := index $.PostRedirectGet "numDeleted" }}
+  {{- $deleteErrors := index $.PostRedirectGet "deleteErrors" }}
+  <div class='pv1'>
+    <div>
+      🗑️ deleted {{ $numDeleted }} file{{ if ne $numDeleted 1.0 }}s{{ end }}
+      {{ if $deleteErrors }} ({{ len $deleteErrors }} error{{ if ne (len $deleteErrors) 1 }}s{{ end }}){{ end }}
+      {{ if $.RegenerationStats.Count }} (regenerated {{ $.RegenerationStats.Count }} file{{ if ne $.RegenerationStats.Count 1 }}s{{ end }} in {{ $.RegenerationStats.TimeTaken }}){{ end }}
+    </div>
+    {{- if $deleteErrors }}
+    <ul class='list-style-disc ph3'>
+      {{- range $error := $deleteErrors }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+    {{- end }}
+  </div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- if eq (index $.PostRedirectGet "from") "clipboard/paste" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  {{- $error := index $.PostRedirectGet "error" }}
+  <div class='pv1'>
+  {{- if $error }}
+    {{- if eq $error "PostNoPaste" }}
+    <div>files from other folders cannot be pasted into a posts folder<br>create a new post and manually copy its contents over instead</div>
+    {{- else if eq $error "PostNoCopy" }}
+    <div>posts cannot be copy-pasted, only moved (use cut and paste)</div>
+    {{- else }}
+    <div>{{ $error }}</div>
+    {{- end }}
+  {{- else }}
+    {{- $srcParent := index $.PostRedirectGet "srcParent" }}
+    {{- $srcHead := head (index $.PostRedirectGet "srcParent") }}
+    {{- $destHead := head (index $.PostRedirectGet "destParent") }}
+    {{- $isCut := index $.PostRedirectGet "isCut" }}
+    {{- $filesExist := index $.PostRedirectGet "filesExist" }}
+    {{- $filesInvalid := index $.PostRedirectGet "filesInvalid" }}
+    {{- $numPasted := len (index $.PostRedirectGet "filesPasted") }}
+    <div>
+      <div>
+        {{ $numPasted }} file{{ if ne $numPasted 1 }}s{{ end }} pasted
+        {{- if and (not $.RegenerationStats.TemplateError.ErrorMessage) $.RegenerationStats.Count }}
+        (regenerated {{ $.RegenerationStats.Count }} file{{ if ne $.RegenerationStats.Count 1 }}s{{ end }} in {{ $.RegenerationStats.TimeTaken }})
+        {{- end }}
+      </div>
+      {{- if $filesExist }}
+      <br>
+      <div>
+        The following files were not pasted because a destination file already exists:
+        <ul class='list-style-disc ph3'>
+          {{- range $name := $filesExist }}
+          <li><a href='/{{ join "files" $.SitePrefix $srcParent $name }}{{ if not (ext $name) }}/{{ end }}'>{{ $name }}</a></li>
+          {{- end }}
+        </ul>
+      </div>
+      {{- end }}
+      {{- if $filesInvalid }}
+      <br>
+      <div>
+        {{- if eq $destHead "pages" }}
+        The following files were not pasted because they are non-html files or contain non-html files:
+        {{- else if eq $destHead "posts" }}
+        The following files were not pasted because they are non-markdown files or contain non-markdown files:
+        {{- else }}
+        The following files were not pasted because they are invalid or contain invalid files:
+        {{- end }}
+        <ul class='list-style-disc ph3'>
+          {{- range $name := $filesInvalid }}
+          <li><a href='/{{ join "files" $.SitePrefix $srcParent $name }}{{ if not (ext $name) }}/{{ end }}'>{{ $name }}</a></li>
+          {{- end }}
+        </ul>
+      </div>
+      {{- end }}
+    </div>
+  {{- end }}
+  </div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- if eq (index $.PostRedirectGet "from") "uploadfile" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  {{- $uploadCount := index $.PostRedirectGet "uploadCount" }}
+  {{- $filesExist := index $.PostRedirectGet "filesExist" }}
+  {{- $filesTooBig := index $.PostRedirectGet "filesTooBig" }}
+  {{- $uploadSize := float64ToInt64 (index $.PostRedirectGet "uploadSize") }}
+  <div class='pv1'>
+    <div>uploaded {{ $uploadCount }} file{{ if ne $uploadCount 1.0 }}s{{ end }} ({{ humanReadableFileSize $uploadSize }} total)</div>
+    {{- if $filesExist }}
+    <br>
+    <div>
+      The following files were not uploaded because a destination file already exists:
+      <ul class='list-style-disc ph3'>
+        {{- range $name := $filesExist }}
+        <li>{{ $name }}</li>
+        {{- end }}
+      </ul>
+    </div>
+    {{- end }}
+    {{- if $filesTooBig }}
+    <br>
+    <div>
+      The following files were not uploaded because they are too big (max 10 MB per file):
+      <ul class='list-style-disc ph3'>
+        {{- range $name := $filesTooBig }}
+        <li>{{ $name }}</li>
+        {{- end }}
+      </ul>
+    </div>
+    {{- end }}
+  </div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- if eq (index $.PostRedirectGet "from") "rename" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  {{ $parent := index $.PostRedirectGet "parent" }}
+  {{ $oldName := index $.PostRedirectGet "oldName" }}
+  {{ $newName := index $.PostRedirectGet "newName" }}
+  {{ $isDir := index $.PostRedirectGet "isDir" }}
+  <div class='pv1'>
+    renamed {{ $oldName }}{{ if $isDir }}/{{ end }} =&gt; <a href='/{{ join "files" $.SitePrefix $parent $newName }}{{ if $isDir }}/{{ end }}'>{{ $newName }}{{ if $isDir}}/{{ end }}</a>{{ if $.RegenerationStats.Count }} (regenerated {{ $.RegenerationStats.Count }} file{{ if ne $.RegenerationStats.Count 1 }}s{{ end }} in {{ $.RegenerationStats.TimeTaken }}){{ end }}
+  </div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- if eq (index $.PostRedirectGet "from") "pin" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  {{ $numPinned := index $.PostRedirectGet "numPinned" }}
+  <div class='pv1'>
+    pinned {{ $numPinned }} file{{ if ne $numPinned 1.0 }}s{{ end }}
+  </div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- if eq (index $.PostRedirectGet "from") "unpin" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  {{ $numUnpinned := index $.PostRedirectGet "numUnpinned" }}
+  <div class='pv1'>
+    📌 unpinned {{ $numUnpinned }} file{{ if ne $numUnpinned 1.0 }}s{{ end }}
+  </div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- if eq (index $.PostRedirectGet "from") "resettheme" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  <div class='pv1'>
+    {{ if $.RegenerationStats.Count }}reset theme (regenerated {{ $.RegenerationStats.Count }} file{{ if ne $.RegenerationStats.Count 1 }}s{{ end }} in {{ $.RegenerationStats.TimeTaken }}){{ else }}no files to reset (regenerated 0 files){{ end }}
+  </div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- if eq (index $.PostRedirectGet "from") "applytheme" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  <div class='pv1'>
+    {{ if $.RegenerationStats.Count }}applied theme (regenerated {{ $.RegenerationStats.Count }} file{{ if ne $.RegenerationStats.Count 1 }}s{{ end }} in {{ $.RegenerationStats.TimeTaken }}){{ else }}no files to reset (regenerated 0 files){{ end }}
+  </div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- if len $clipboard }}
+{{- $srcParent := $clipboard.Get "parent" }}
+{{- $names := index $clipboard "name" }}
+<div class='dashed-border mv2 pa2 br2 flex items-center'>
+  <div class='flex-grow-1 truncate'>
+    {{- if eq (head $srcParent) "output" }}
+      {{- if eq (head (tail $srcParent)) "themes" }}
+      <a href='/{{ join "files" $.SitePrefix $srcParent }}/?sort=name&from={{ index $names 0 }}'>{{ len $names }} file{{ if ne (len $names) 1 }}s{{ end }} {{ if $clipboard.Has "cut" }}cut{{ else }}copied{{ end }}</a>: {{ range $i, $name := $names }}{{ if $i }}, {{ end }}{{ $name }}{{ end }}
+      {{- else if eq (head (tail $srcParent)) "posts" }}
+      <a href='/{{ join "files" $.SitePrefix (tail $srcParent) }}.md'>{{ len $names }} file{{ if ne (len $names) 1 }}s{{ end }} {{ if $clipboard.Has "cut" }}cut{{ else }}copied{{ end }}</a>: {{ range $i, $name := $names }}{{ if $i }}, {{ end }}{{ $name }}{{ end }}
+      {{- else }}
+      <a href='/{{ join "files" $.SitePrefix "pages" (tail $srcParent) }}.html'>{{ len $names }} file{{ if ne (len $names) 1 }}s{{ end }} {{ if $clipboard.Has "cut" }}cut{{ else }}copied{{ end }}</a>: {{ range $i, $name := $names }}{{ if $i }}, {{ end }}{{ $name }}{{ end }}
+      {{- end }}
+    {{- else }}
+    <a href='/{{ join "files" $.SitePrefix $srcParent }}/?sort=name&from={{ index $names 0 }}'>{{ len $names }} file{{ if ne (len $names) 1 }}s{{ end }} {{ if $clipboard.Has "cut" }}cut{{ else }}copied{{ end }}</a>: {{ range $i, $name := $names }}{{ if $i }}, {{ end }}{{ $name }}{{ end }}
+    {{- end }}
+  </div>
+  {{- if not $readOnly }}
+  <form method='post' action='/{{ join "files" $.SitePrefix "clipboard/paste" }}' class='ml2' data-prevent-double-submit>
+    <input type='hidden' name='parent' value='{{ $.FilePath }}'>
+    <button type='submit' class='button ba br2 b--black pv2 ph2'>paste</button>
+  </form>
+  {{- end }}
+  <form method='post' action='/{{ join "files" $.SitePrefix "clipboard/clear" }}' class='ml2' data-prevent-double-submit>
+    <button type='submit' class='button-danger ba br2 b--dark-red pv2 ph2'>clear</button>
+  </form>
+</div>
+{{- end }}
+
+<div class='mv2 flex flex-wrap items-center'>
+  <div class='flex-grow-1'></div>
+  <div class='flex items-center'>
+    <details class='relative ml2' data-autoclose-details>
+      <summary role='button' title='Sort' class='pointer flex items-center button ba br2 b--black ph2 h2 hide-marker' data-disable-click-selection>
+        {{ template "octicons-sort-desc" }}
+        {{ template "octicons-triangle-down" }}
+      </summary>
+      <div class='absolute bg-white br2' style='top: calc(2rem + 4px); right: 0px; z-index: 1000; border: 1px solid black;'>
+        <div class='ma2 tr'><a href='{{ sortBy "name" }}' class='nowrap{{ if eq $.Sort "name" }} arrow-before{{ end }}'>name</a></div>
+        <div class='ma2 tr'><a href='{{ sortBy "created" }}' class='nowrap{{ if eq $.Sort "created" }} arrow-before{{ end }}'>date created</a></div>
+        <div class='ma2 tr'><a href='{{ sortBy "edited" }}' class='nowrap{{ if eq $.Sort "edited" }} arrow-before{{ end }}'>date edited</a></div>
+        {{- if $.IsDatabaseFS }}
+        <div class='ma2 tr'><a href='{{ sortBy "size" }}' class='nowrap{{ if eq $.Sort "size" }} arrow-before{{ end }}'>size</a></div>
+        {{- end }}
+        <hr>
+        <div class='ma2 tr'><a href='{{ orderBy "asc" }}' class='nowrap{{ if eq $.Order "asc" }} arrow-before{{ end }}'>ascending</a></div>
+        <div class='ma2 tr'><a href='{{ orderBy "desc" }}' class='nowrap{{ if eq $.Order "desc" }} arrow-before{{ end }}'>descending</a></div>
+        <hr>
+        {{- if $.IsDatabaseFS }}
+          {{- if and (ne $.Limit 20) (ne $.Limit 200) }}
+          <div class='ma2 tr'><a href='{{ limitTo $.Limit }}' class='nowrap arrow-before'>limit {{ $.Limit }}</a></div>
+          {{- end }}
+          <div class='ma2 tr'><a href='{{ limitTo 20 }}' class='nowrap{{ if eq $.Limit 20 }} arrow-before{{ end }}'>limit 20</a></div>
+          <div class='ma2 tr'><a href='{{ limitTo 200 }}' class='nowrap{{ if eq $.Limit 200 }} arrow-before{{ end }}'>limit 200</a></div>
+        {{- end }}
+      </div>
+    </details>
+  </div>
+  {{- if $.IsDatabaseFS }}
+  <div class='flex items-center'>
+    <details class='relative ml2' data-autoclose-details>
+      <summary role='button' title='Search' class='pointer flex items-center button ba br2 b--black ph2 h2 hide-marker' data-disable-click-selection>
+        {{ template "octicons-search" }}
+        {{ template "octicons-triangle-down" }}
+      </summary>
+      <form method='get' action='/{{ join "files" $.SitePrefix "search" }}/' class='absolute bg-white br2 pa2' style='top: calc(2rem + 4px); right: 0px; z-index: 1000; border: 1px solid black;'>
+        <input type='hidden' name='parent' value='{{ $.FilePath }}'>
+        <input name='mustInclude' placeholder='search this folder' class='pa2 br2 ba'>
+        <button type='submit' class='button ba br2 b--black pa2 w-100 mt2'>search</button>
+      </form>
+    </details>
+  </div>
+  {{- end }}
+  {{- if not $readOnly }}
+  <div class='flex items-center'>
+    <details class='relative ml2' data-autoclose-details>
+      <summary role='button' title='Create' class='pointer flex items-center button ba br2 b--black ph2 h2 hide-marker' data-disable-click-selection>
+        {{ template "octicons-plus" }}
+        {{ template "octicons-triangle-down" }}
+      </summary>
+      <div class='absolute bg-white br2' style='top: calc(2rem + 4px); right: 0px; z-index: 1000; border: 1px solid black;'>
+        {{- if eq (head $.FilePath) "notes" }}
+        <div class='ma2 tr'><a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ $.FilePath }}' class='nowrap'>📓 create note</a></div>
+        <div class='ma2 tr'><a href='/{{ join "files" $.SitePrefix "createfolder" }}?parent={{ $.FilePath }}' class='nowrap'>📂 create folder</a></div>
+        {{- else if eq (head $.FilePath) "pages" }}
+        <div class='ma2 tr'><a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ $.FilePath }}' class='nowrap'>📄 create page</a></div>
+        <div class='ma2 tr'><a href='/{{ join "files" $.SitePrefix "createfolder" }}?parent={{ $.FilePath }}' class='nowrap'>📂 create folder</a></div>
+        {{- else if eq (head $.FilePath) "posts" }}
+        <div class='ma2 tr'><a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ $.FilePath }}' class='nowrap'>📝 create post</a></div>
+          {{- if eq $.FilePath "posts" }}
+          <div class='ma2 tr'><a href='/{{ join "files" $.SitePrefix "createfolder" }}?parent={{ $.FilePath }}' class='nowrap'>📂 create category</a></div>
+          {{- end }}
+        {{- else }}
+        <div class='ma2 tr'><a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ $.FilePath }}' class='nowrap'>📄 create file</a></div>
+        <div class='ma2 tr'><a href='/{{ join "files" $.SitePrefix "createfolder" }}?parent={{ $.FilePath }}' class='nowrap'>📂 create folder</a></div>
+        {{- end }}
+        <hr>
+        <form method='post' enctype='multipart/form-data' action='/{{ join "files" $.SitePrefix "uploadfile" }}/' class='pa2' data-upload-file>
+          <input type='hidden' name='parent' value='{{ $.FilePath }}'>
+          <input type='file' name='file' style='max-width: 220px;' accept='{{ joinStrings $.UploadableExts "," }}' multiple>
+          <input placeholder='paste files here' class='mt2' data-paste='{"name":"file","ext":{{ jsonArray $.UploadableExts }}}'>
+          <button type='submit' class='button ba br2 b--black pa2 w-100 mt2'>upload</button>
+          <div role='status'></div>
+        </form>
+      </div>
+    </details>
+  </div>
+  {{- end }}
+</div>
+{{- if eq (head $.FilePath) "posts" }}
+<div class='flex flex-wrap items-center'>
+  <div class='flex-grow-1'></div>
+  <a href='{{ $.ContentBaseURL }}/{{ $.FilePath }}/'>view posts</a>
+</div>
+{{- else if and (eq (head $.FilePath) "output") (eq (head (tail $.FilePath)) "themes") }}
+<div class='flex flex-wrap items-center'>
+  <div class='flex-grow-1'></div>
+  <a href='/{{ join "files" $.SitePrefix "applytheme" }}/?parent={{ $.FilePath }}' class='mr2'>apply theme</a>
+  &bull;
+  <a href='/{{ join "files" $.SitePrefix "resettheme" }}/' class='ml2'>reset theme</a>
+</div>
+{{- end }}
+{{- if $.RegenerationStats.TemplateError.ErrorMessage }}
+<div class='mv2 invalid-red'>
+  <span class='b'>template error: </span>
+  {{- if $.RegenerationStats.TemplateError.Name }}
+    {{- if hasPrefix $.RegenerationStats.TemplateError.Name "/themes/" }}
+    <a href='/{{ join "files" $.SitePrefix "output" $.RegenerationStats.TemplateError.Name }}{{ if $.RegenerationStats.TemplateError.Line }}#L{{ $.RegenerationStats.TemplateError.Line }}{{ end }}'>{{ $.RegenerationStats.TemplateError.Name }}{{ if $.RegenerationStats.TemplateError.Line }}:{{ $.RegenerationStats.TemplateError.Line }}{{ end }}</a>: {{ $.RegenerationStats.TemplateError.ErrorMessage }}
+    {{- else }}
+    <a href='/{{ join "files" $.SitePrefix $.RegenerationStats.TemplateError.Name }}{{ if $.RegenerationStats.TemplateError.Line }}#L{{ $.RegenerationStats.TemplateError.Line }}{{ end }}'>{{ $.RegenerationStats.TemplateError.Name }}{{ if $.RegenerationStats.TemplateError.Line }}:{{ $.RegenerationStats.TemplateError.Line }}{{ end }}</a>: {{ $.RegenerationStats.TemplateError.ErrorMessage }}
+    {{- end }}
+  {{- else }}
+  {{ $.RegenerationStats.TemplateError.ErrorMessage }}
+  {{- end }}
+</div>
+{{- end }}
+{{- if or $.PreviousURL $.NextURL }}
+<div class='mv2 flex flex-wrap items-center'>
+  {{- if $.PreviousURL }}
+  <a href='{{ $.PreviousURL }}'>&larr; previous</a>
+  {{- end }}
+  <span class='flex-grow-1'></span>
+  {{- if $.NextURL }}
+  <a href='{{ $.NextURL }}'>next &rarr;</a>
+  {{- end }}
+</div>
+{{- end }}
+<div class='bb pb2 flex flex-wrap'>
+  <div class=''>
+    {{ generateBreadcrumbLinks $.SitePrefix $.FilePath }}
+  </div>
+</div>
+{{- if $.Files }}
+<form>
+  <input type='hidden' name='parent' value='{{ $.FilePath }}'>
+  <ul>
+    {{- range $file := $.PinnedFiles }}
+    <li class='bb pv2'>
+      <label for='pinned:{{ $file.Parent }}:{{ $file.Name }}' class='flex items-start pointer' data-disable-click-selection>
+        <div class='mr1 flex items-center' style='margin-top: 0.6rem;'>
+          <input type='checkbox' id='pinned:{{ $file.Parent }}:{{ $file.Name }}' name='name' value='{{ join $file.Parent $file.Name }}' class='pointer'>
+        </div>
+        <div class='flex flex-wrap break-word items-center mt1 br2{{ if isInClipboard $file.Name }} dashed-border{{ end }}'>
+          <span class='mr1 flex items-center'>📌</span>
+          {{- if $file.IsDir }}
+          <span class='mr1 flex items-center'>📂</span>
+          {{- else if and (eq (head $.FilePath) "posts") (eq $file.Name "postlist.json") }}
+          <span class='mr1 flex items-center'>⚙️</span>
+          {{- end }}
+          {{- $fileType := getFileType $file.Name }}
+          {{- if $fileType.IsImg }}
+            {{- if and $.CDNDomain $.IsDatabaseFS $fileType.IsObject }}
+            <img src='//{{ $.CDNDomain }}/{{ $file.FileID }}{{ ext $file.Name }}' class='h3 w3 mr1 object-cover' loading='lazy'>
+            {{- else }}
+            <img src='/{{ join "files" $.SitePrefix $file.Parent $file.Name }}?raw' class='h3 w3 mr1 object-cover' loading='lazy'>
+            {{- end }}
+          {{- end }}
+          <a href='/{{ join "files" $.SitePrefix $file.Parent $file.Name }}{{ if $file.IsDir }}/{{ end }}' class='flex-wrap'>{{ if eq $file.Parent $.FilePath }}{{ $file.Name }}{{ else }}/{{ join $file.Parent $file.Name }}{{ end }}{{ if $file.IsDir }}/{{ end }}</a>
+          {{- if or (not $file.IsDir) $.IsDatabaseFS }}
+          <span class='ml2 f6 mid-gray'>{{ humanReadableFileSize $file.Size }}</span>
+          {{- end }}
+          <span class='ml2 f6 mid-gray'>{{ formatTime $file.CreationTime "2006-01-02" $.TimezoneOffsetSeconds }}</span>
+        </div>
+        <div class='flex-grow-1'></div>
+        <details class='relative ml1' data-autoclose-details>
+          <summary role='button' title='more actions' class='flex items-center button ba br2 b--black h2 hide-marker ph2 pointer' data-disable-click-selection>
+            {{ template "heroicons-ellipsis-horizontal" }}
+            {{ template "octicons-triangle-down" }}
+          </summary>
+          <div class='absolute bg-white br2' style='top: calc(2rem + 4px); right: 0px; z-index: 1000; border: 1px solid black;'>
+          {{- if $readOnly }}
+            {{- if $.IsDatabaseFS }}
+            <div class='ma2'><button type='submit' formmethod='get' formaction='/{{ join "files" $.SitePrefix "unpin" }}/' name='name' value='{{ join $file.Parent $file.Name }}' class='button-danger ba br2 b--dark-red pa2 w-100'>unpin</button></div>
+            {{- end }}
+          <div class='ma2'><button type='submit' formmethod='get' formaction='/{{ join "files" $.SitePrefix "delete" }}/' name='name' value='{{ $file.Name }}' class='button-danger ba br2 b--dark-red pa2 w-100'>delete</button></div>
+          {{- else if or
+            (and
+              (eq $file.Parent "pages")
+              (eq $file.Name "index.html" "404.html"))
+            (and
+              (eq (head $file.Parent) "posts")
+              (eq $file.Name "post.html" "postlist.html" "postlist.json"))
+          }}
+          <div class='ma2'><button type='submit' formmethod='post' formaction='/{{ join "files" $.SitePrefix "clipboard/copy" }}/' name='name' value='{{ $file.Name }}' class='button ba br2 b--black pa2 w-100'>copy</button></div>
+          <div class='ma2'><button type='submit' formmethod='get' formaction='/{{ join "files" $.SitePrefix "export" }}/' name='name' value='{{ $file.Name }}' class='button ba br2 b--black pa2 w-100'>export</button></div>
+            {{- if $.IsDatabaseFS }}
+            <div class='ma2'><button type='submit' formmethod='get' formaction='/{{ join "files" $.SitePrefix "unpin" }}/' name='name' value='{{ join $file.Parent $file.Name }}' class='button-danger ba br2 b--dark-red pa2 w-100'>unpin</button></div>
+            {{- end }}
+          <div class='ma2'><button type='submit' formmethod='get' formaction='/{{ join "files" $.SitePrefix "delete" }}/' name='name' value='{{ $file.Name }}' class='button-danger ba br2 b--dark-red pa2 w-100'>delete</button></div>
+          {{- else }}
+            {{- if $file.IsDir }}
+              {{- if eq (head $file.Parent) "notes" }}
+              <div class='ma2 tc'><a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ join $file.Parent $file.Name }}' class='nowrap'>create note</a></div>
+              {{- else if eq (head $file.Parent) "pages" }}
+              <div class='ma2 tc'><a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ join $file.Parent $file.Name }}' class='nowrap'>create page</a></div>
+              {{- else if eq (head $file.Parent) "posts" }}
+              <div class='ma2 tc'><a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ join $file.Parent $file.Name }}' class='nowrap'>create post</a></div>
+              {{- else }}
+                {{- if and (eq (head $file.Parent) "output") (eq (head (tail $file.Parent)) "themes") }}
+                <div class='ma2 tc'><a href='/{{ join "files" $.SitePrefix "applytheme" }}/?parent={{ join $file.Parent $file.Name }}' class='nowrap'>apply theme</a></div>
+                {{- end }}
+              <div class='ma2 tc'><a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ join $file.Parent $file.Name }}' class='nowrap'>create file</a></div>
+              {{- end }}
+            {{- end }}
+          <div class='ma2 tc'><a href='/{{ join "files" $.SitePrefix "rename" }}/?parent={{ $file.Parent }}&name={{ $file.Name }}'>rename</a></div>
+          <div class='ma2'><button type='submit' formmethod='post' formaction='/{{ join "files" $.SitePrefix "clipboard/cut" }}/' name='name' value='{{ $file.Name }}' class='button ba br2 b--black pa2 w-100'>cut</button></div>
+          <div class='ma2'><button type='submit' formmethod='post' formaction='/{{ join "files" $.SitePrefix "clipboard/copy" }}/' name='name' value='{{ $file.Name }}' class='button ba br2 b--black pa2 w-100'>copy</button></div>
+          <div class='ma2'><button type='submit' formmethod='get' formaction='/{{ join "files" $.SitePrefix "export" }}/' name='name' value='{{ $file.Name }}' class='button ba br2 b--black pa2 w-100'>export</button></div>
+            {{- if $.IsDatabaseFS }}
+            <div class='ma2'><button type='submit' formmethod='get' formaction='/{{ join "files" $.SitePrefix "unpin" }}/' name='name' value='{{ join $file.Parent $file.Name }}' class='button-danger ba br2 b--dark-red pa2 w-100'>unpin</button></div>
+            {{- end }}
+          <div class='ma2'><button type='submit' formmethod='get' formaction='/{{ join "files" $.SitePrefix "delete" }}/' name='name' value='{{ $file.Name }}' class='button-danger ba br2 b--dark-red pa2 w-100'>delete</button></div>
+          {{- end }}
+          </div>
+        </details>
+      </label>
+    </li>
+    {{- end }}
+    {{- range $file := $.Files }}
+    <li class='bb pv2'>
+      <label for='{{ $file.Name }}' class='flex items-start pointer' data-disable-click-selection>
+        <div class='mr1 flex items-center' style='margin-top: 0.6rem;'>
+          <input type='checkbox' id='{{ $file.Name }}' name='name' value='{{ $file.Name }}' class='pointer' data-checkbox-follower>
+        </div>
+        <div class='flex flex-wrap break-word items-center mt1 br2{{ if isInClipboard $file.Name }} dashed-border{{ end }}'>
+          {{- if $file.IsDir }}
+          <span class='mr1 flex items-center'>📂</span>
+          {{- else if and (eq (head $file.Parent) "posts") (eq $file.Name "postlist.json") }}
+          <span class='mr1 flex items-center'>⚙️</span>
+          {{- end }}
+          {{- $fileType := getFileType $file.Name }}
+          {{- if $fileType.IsImg }}
+            {{- if and $.CDNDomain $.IsDatabaseFS $fileType.IsObject }}
+            <img src='//{{ $.CDNDomain }}/{{ $file.FileID }}{{ ext $file.Name }}' class='h3 w3 mr1 object-cover' loading='lazy'>
+            {{- else }}
+            <img src='/{{ join "files" $.SitePrefix $file.Parent $file.Name }}?raw' class='h3 w3 mr1 object-cover' loading='lazy'>
+            {{- end }}
+          {{- end }}
+          <a href='/{{ join "files" $.SitePrefix $file.Parent $file.Name }}{{ if $file.IsDir }}/{{ end }}' class='flex-wrap'>{{ $file.Name }}{{ if $file.IsDir }}/{{ end }}</a>
+          {{- if or (not $file.IsDir) $.IsDatabaseFS }}
+          <span class='ml2 f6 mid-gray'>{{ humanReadableFileSize $file.Size }}</span>
+          {{- end }}
+          <span class='ml2 f6 mid-gray'>{{ formatTime $file.CreationTime "2006-01-02" $.TimezoneOffsetSeconds }}</span>
+        </div>
+        <div class='flex-grow-1'></div>
+        <details class='relative ml1' data-autoclose-details>
+          <summary role='button' title='more actions' class='flex items-center button ba br2 b--black h2 hide-marker ph2 pointer' data-disable-click-selection>
+            {{ template "heroicons-ellipsis-horizontal" }}
+            {{ template "octicons-triangle-down" }}
+          </summary>
+          <div class='absolute bg-white br2' style='top: calc(2rem + 4px); right: 0px; z-index: 1000; border: 1px solid black;'>
+          {{- if $readOnly }}
+          <div class='ma2 tc'><a href='/{{ join "files" $.SitePrefix "rename" }}/?parent={{ $file.Parent }}&name={{ $file.Name }}'>rename</a></div>
+            {{- if $.IsDatabaseFS }}
+            <div class='ma2'><button type='submit' formmethod='post' formaction='/{{ join "files" $.SitePrefix "pin" }}/' name='name' value='{{ $file.Name }}' class='button ba br2 b--black pa2 w-100'>pin</button></div>
+            {{- end }}
+          <div class='ma2'><button type='submit' formmethod='get' formaction='/{{ join "files" $.SitePrefix "delete" }}/' name='name' value='{{ $file.Name }}' class='button-danger ba br2 b--dark-red pa2 w-100'>delete</button></div>
+          {{- else if or
+            (and
+              (eq $file.Parent "pages")
+              (eq $file.Name "index.html" "404.html"))
+            (and
+              (eq (head $file.Parent) "posts")
+              (eq $file.Name "post.html" "postlist.html" "postlist.json"))
+          }}
+          <div class='ma2'><button type='submit' formmethod='post' formaction='/{{ join "files" $.SitePrefix "clipboard/copy" }}/' name='name' value='{{ $file.Name }}' class='button ba br2 b--black pa2 w-100'>copy</button></div>
+          <div class='ma2'><button type='submit' formmethod='get' formaction='/{{ join "files" $.SitePrefix "export" }}/' name='name' value='{{ $file.Name }}' class='button ba br2 b--black pa2 w-100'>export</button></div>
+            {{- if $.IsDatabaseFS }}
+            <div class='ma2'><button type='submit' formmethod='post' formaction='/{{ join "files" $.SitePrefix "pin" }}/' name='name' value='{{ $file.Name }}' class='button ba br2 b--black pa2 w-100'>pin</button></div>
+            {{- end }}
+          <div class='ma2'><button type='submit' formmethod='get' formaction='/{{ join "files" $.SitePrefix "delete" }}/' name='name' value='{{ $file.Name }}' class='button-danger ba br2 b--dark-red pa2 w-100'>delete</button></div>
+          {{- else }}
+            {{- if $file.IsDir }}
+              {{- if eq (head $file.Parent) "notes" }}
+              <div class='ma2 tc'><a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ join $file.Parent $file.Name }}' class='nowrap'>create note</a></div>
+              {{- else if eq (head $file.Parent) "pages" }}
+              <div class='ma2 tc'><a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ join $file.Parent $file.Name }}' class='nowrap'>create page</a></div>
+              {{- else if eq (head $file.Parent) "posts" }}
+              <div class='ma2 tc'><a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ join $file.Parent $file.Name }}' class='nowrap'>create post</a></div>
+              {{- else }}
+                {{- if and (eq (head $file.Parent) "output") (eq (head (tail $file.Parent)) "themes") }}
+                <div class='ma2 tc'><a href='/{{ join "files" $.SitePrefix "applytheme" }}/?parent={{ join $file.Parent $file.Name }}' class='nowrap'>apply theme</a></div>
+                {{- end }}
+              <div class='ma2 tc'><a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ join $file.Parent $file.Name }}' class='nowrap'>create file</a></div>
+              {{- end }}
+            {{- end }}
+          <div class='ma2 tc'><a href='/{{ join "files" $.SitePrefix "rename" }}/?parent={{ $file.Parent }}&name={{ $file.Name }}'>rename</a></div>
+          <div class='ma2'><button type='submit' formmethod='post' formaction='/{{ join "files" $.SitePrefix "clipboard/cut" }}/' name='name' value='{{ $file.Name }}' class='button ba br2 b--black pa2 w-100'>cut</button></div>
+          <div class='ma2'><button type='submit' formmethod='post' formaction='/{{ join "files" $.SitePrefix "clipboard/copy" }}/' name='name' value='{{ $file.Name }}' class='button ba br2 b--black pa2 w-100'>copy</button></div>
+          <div class='ma2'><button type='submit' formmethod='get' formaction='/{{ join "files" $.SitePrefix "export" }}/' name='name' value='{{ $file.Name }}' class='button ba br2 b--black pa2 w-100'>export</button></div>
+            {{- if $.IsDatabaseFS }}
+            <div class='ma2'><button type='submit' formmethod='post' formaction='/{{ join "files" $.SitePrefix "pin" }}/' name='name' value='{{ $file.Name }}' class='button ba br2 b--black pa2 w-100'>pin</button></div>
+            {{- end }}
+          <div class='ma2'><button type='submit' formmethod='get' formaction='/{{ join "files" $.SitePrefix "delete" }}/' name='name' value='{{ $file.Name }}' class='button-danger ba br2 b--dark-red pa2 w-100'>delete</button></div>
+          {{- end }}
+          </div>
+        </details>
+      </label>
+    </li>
+    {{- end }}
+  </ul>
+</form>
+  {{- if or $.PreviousURL $.NextURL }}
+  <div class='mv3 flex flex-wrap items-center'>
+    {{- if $.PreviousURL }}
+    <a href='{{ $.PreviousURL }}'>&larr; previous</a>
+    {{- end }}
+    <span class='flex-grow-1'></span>
+    {{- if $.NextURL }}
+    <a href='{{ $.NextURL }}'>next &rarr;</a>
+    {{- end }}
+  </div>
+  {{- end }}
+{{- else }}
+  {{- if and (not $.From) (not $.FromEdited) (not $.FromCreated) (not $.Before) (not $.BeforeEdited) (not $.BeforeCreated) }}
+  <div class='mv4 tc'>
+    {{- if eq (head $.FilePath) "notes" }}
+    folder is empty, <a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ $.FilePath }}'>create a new note</a>
+    {{- else if eq (head $.FilePath) "pages" }}
+    folder is empty, <a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ $.FilePath }}'>create a new page</a>
+    {{- else if eq (head $.FilePath) "posts" }}
+    folder is empty, <a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ $.FilePath }}'>create a new post</a>
+    {{- else if not $readOnly }}
+    folder is empty, <a href='/{{ join "files" $.SitePrefix "createfile" }}/?parent={{ $.FilePath }}'>create a new file</a>
+    {{- else }}
+    folder is empty
+    {{- end }}
+  </div>
+  {{- end }}
+{{- end }}
+
+{{- define "octicons-plus" }}
+<svg aria-hidden='true' height='16' viewBox='0 0 16 16' version='1.1' width='16' data-view-component='true' class='octicon octicon-plus'>
+  <path d='M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z'></path>
+</svg>
+{{- end }}
+
+{{- define "octicons-triangle-down" }}
+<svg aria-hidden='true' height='16' viewBox='0 0 16 16' version='1.1' width='16' data-view-component='true' class='octicon octicon-triangle-down'>
+  <path d='m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z'></path>
+</svg>
+{{- end }}
+
+{{- define "octicons-sort-desc" }}
+<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'>
+  <path d='M0 4.25a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 4.25Zm0 4a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 8.25Zm0 4a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75ZM13.5 10h2.25a.25.25 0 0 1 .177.427l-3 3a.25.25 0 0 1-.354 0l-3-3A.25.25 0 0 1 9.75 10H12V3.75a.75.75 0 0 1 1.5 0V10Z'></path>
+</svg>
+{{- end }}
+
+{{- define "octicons-search" }}
+<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'>
+  <path d='M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z'></path>
+</svg>
+{{- end }}
+
+{{- define "heroicons-question-mark-circle" }}
+<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' viewBox='0 0 24 24' strokeWidth={1.5} stroke='currentColor'>
+  <path strokeLinecap='round' strokeLinejoin='round' d='M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z' />
+</svg>
+{{- end }}
+
+{{- define "heroicons-information-circle" }}
+<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'>
+  <path stroke-linecap='round' stroke-linejoin='round' d='M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z' />
+</svg>
+{{- end }}
+
+{{- define "heroicons-ellipsis-horizontal" }}
+<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24'>
+  <path d='M5 12H5.01M12 12H12.01M19 12H19.01M6 12C6 12.5523 5.55228 13 5 13C4.44772 13 4 12.5523 4 12C4 11.4477 4.44772 11 5 11C5.55228 11 6 11.4477 6 12ZM13 12C13 12.5523 12.5523 13 12 13C11.4477 13 11 12.5523 11 12C11 11.4477 11.4477 11 12 11C12.5523 11 13 11.4477 13 12ZM20 12C20 12.5523 19.5523 13 19 13C18.4477 13 18 12.5523 18 12C18 11.4477 18.4477 11 19 11C19.5523 11 20 11.4477 20 12Z' stroke='#4A5568' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'/>
+</svg>
+{{- end }}

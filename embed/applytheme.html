@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>apply theme</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  {{- if $.SitePrefix }}
+  &bull;<a href='/{{ join "files" $.SitePrefix }}/' class='ma2 white'>{{ $.SitePrefix }}</a>
+  {{- end }}
+  &bull;<a href='{{ $.ContentBaseURL }}' class='ma2 white'>view site</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if eq $.Error "InvalidParent" }}
+  <div>
+    {{- if referer }}
+    <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+    {{- else }}
+    <div><a href='/{{ join "files" $.SitePrefix "output/themes" }}/'>&larr; back</a></div>
+    {{- end }}
+    <div class='mv3 b tc'>Can't apply theme.</div>
+  </div>
+{{- else }}
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- else }}
+  <div><a href='/files/'>&larr; back</a></div>
+  {{- end }}
+  <h2 class='ma0 b'>Apply theme <a href='/{{ join "files" $.SitePrefix $.Parent }}/'>{{ base $.Parent }}</a></h2>
+  {{- if $.Error }}
+  <div role='alert' class='w-100 br2 ph3 pv2 ba alert'>
+    <div>{{ $.Error }}</div>
+  </div>
+  {{- end }}
+  <form method='post' data-prevent-double-submit>
+    <input type='hidden' name='parent' value='{{ $.Parent }}'>
+    <fieldset>
+      <legend><h2 class='mv0 mh2'>pages</h2></legend>
+      <label class='flex flex-wrap items-center pointer mv2'>
+        {{- if $.HasIndexHTML }}
+        <input type='checkbox' name='applyIndexHTML' value='true' class='pointer' checked>
+        <span class='ml2'>apply <a href='/{{ join "files" $.SitePrefix $.Parent }}/index.html'>index.html</a></span>
+        {{- else }}
+        <input type='checkbox' disabled>
+        <s class='ml2'>apply index.html</s>
+        <span class='ml2'>(index.html missing)</span>
+        {{- end }}
+      </label>
+      <label class='flex flex-wrap items-center pointer mv2'>
+        {{- if $.Has404HTML }}
+        <input type='checkbox' name='apply404HTML' value='true' class='pointer' checked>
+        <span class='ml2'>apply <a href='/{{ join "files" $.SitePrefix $.Parent }}/404.html'>404.html</a></span>
+        {{- else }}
+        <input type='checkbox' disabled>
+        <s class='ml2'>apply 404.html</s>
+        <span class='ml2'>(404.html missing)</span>
+        {{- end }}
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend><h2 class='mv0 mh2'>posts</h2></legend>
+      <label class='flex flex-wrap items-center pointer mv2'>
+        {{- if $.HasPostHTML }}
+        <input type='checkbox' name='applyPostHTML' value='true' class='pointer' checked>
+        <span class='ml2'>apply <a href='/{{ join "files" $.SitePrefix $.Parent }}/post.html'>post.html</a></span>
+        {{- else }}
+        <input type='checkbox' disabled>
+        <s class='ml2'>apply post.html</s>
+        <span class='ml2'>(post.html missing)</span>
+        {{- end }}
+      </label>
+      <label class='flex flex-wrap items-center pointer mv2'>
+        {{- if $.HasPostListHTML }}
+        <input type='checkbox' name='applyPostListHTML' value='true' class='pointer' checked>
+        <span class='ml2'>apply <a href='/{{ join "files" $.SitePrefix $.Parent }}/postlist.html'>postlist.html</a></span>
+        {{- else }}
+        <input type='checkbox' disabled>
+        <s class='ml2'>apply postlist.html</s>
+        <span class='ml2'>(postlist.html missing)</span>
+        {{- end }}
+      </label>
+      {{- if or $.HasPostHTML $.HasPostListHTML }}
+      <label class='flex flex-wrap items-center pointer mv2'>
+        <input type='radio' name='forAllCategories' value='true' class='pointer' checked>
+        <span class='ml2'>for all categories</span>
+      </label>
+      <label class='flex flex-wrap items-center pointer mv2'>
+        <input id='notForAllCategories' type='radio' name='forAllCategories' value='false' class='pointer'>
+        <span class='ml2'>for category</span>
+        <select name='forCategory' class='ml2' data-check-on-focus='#notForAllCategories'>
+          {{- range $category := $.Categories }}
+          <option value='{{ $category }}'>{{ if $category }}{{ $category }}{{ else }}&lt;default&gt;{{ end }}</option>
+          {{- end }}
+        </select>
+      </label>
+      {{- else }}
+      <label class='flex flex-wrap items-center pointer mv2'>
+        <input type='radio' disabled>
+        <span class='ml2'>for all categories</span>
+      </label>
+      <label class='flex flex-wrap items-center pointer mv2'>
+        <input type='radio' disabled>
+        <span class='ml2'>for category</span>
+        <select name='forCategory' class='ml2'>
+          {{- range $category := $.Categories }}
+          <option value='{{ $category }}'>{{ if $category }}{{ $category }}{{ else }}&lt;default&gt;{{ end }}</option>
+          {{- end }}
+        </select>
+      </label>
+      {{- end }}
+    </fieldset>
+    {{- if or $.HasIndexHTML $.Has404HTML $.HasPostHTML $.HasPostListHTML }}
+    <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>apply theme</button>
+    {{- else }}
+    <button type='submit' class='button ba br2 b--black pa2 mv3 w-100' disabled>apply theme</button>
+    {{- end }}
+  </form>
+{{- end }}

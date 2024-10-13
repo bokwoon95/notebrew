@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>Create site</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if eq $.Error "MaxSitesReached" }}
+<div>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- else }}
+  <div><a href='/files/'>&larr; back</a></div>
+  {{- end }}
+  <div class='mv3 b'>You have reached the maximum of {{ maxSites }} site{{ if ne $.SiteLimit 1 }}s{{ end }}, cannot create any more.</div>
+  <ul class='list-style-disc ph3'>
+    {{- range $siteName := $.UserSiteNames }}
+    <li><a href='/files/{{ if not (contains $siteName ".") }}@{{ end }}{{ $siteName }}/'>{{ $siteName }}</a></li>
+    {{- end }}
+  </ul>
+</div>
+{{- else }}
+<form method='post' action='/files/createsite/' data-prevent-double-submit>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- else }}
+  <div><a href='/files/'>&larr; back</a></div>
+  {{- end }}
+  <h2 class='ma0 b'>Create a new site</h2>
+  <div><span class='dark-red'>*&nbsp;</span><em>required</em></div>
+  {{- if and (not (index $.UserFlags "NoCustomDomain")) $.ValidateCustomDomain }}
+  <details class='mv2'>
+    <summary class='pointer f6'>If you are adding a custom domain, read this!!! <strong class='dark-red'>(important)</strong></summary>
+    <p>Make sure the following CNAME record exists in the DNS settings of your domain registrar (that you purchased your domain from).</p>
+    <div class='overflow-x-auto'>
+      <table class='collapse w-100'>
+        <tr class='bb h2 tc'>
+          <th class='pa2'>Type</th>
+          <th class='pa2'>Name / Host</th>
+          <th class='pa2'>Value / Content</th>
+          <th class='pa2'>TTL</th>
+        </tr>
+        <tr class='bb tc'>
+          <td class='pa2'>CNAME</td>
+          <td class='pa2'>@</td>
+          <td class='pa2'>www.{{ $.ContentDomain }}</td>
+          <td class='pa2'>auto (or 3600 seconds/1 hour)</td>
+        </tr>
+      </table>
+    </div>
+    <p>If you have only just created it, please wait for a few minutes for it to take effect. Make sure it is reachable by visiting visiting <a href='https://dnschecker.org/#CNAME'>https://dnschecker.org/#CNAME</a> and affirming that your custom domain points to <code>www.{{ $.ContentDomain }}.</code></p>
+      {{- if eq $.CMSDomain $.ContentDomain }}
+      <p class='b'>If your DNS provider forbids you from setting CNAME records, you can set the following A record instead.</p>
+      <div class='overflow-x-auto'>
+        <table class='collapse w-100'>
+          <tr class='bb h2 tc'>
+            <th class='pa2'>Type</th>
+            <th class='pa2'>Name / Host</th>
+            <th class='pa2'>Value / Content</th>
+            <th class='pa2'>TTL</th>
+          </tr>
+          <tr class='bb tc'>
+            <td class='pa2'>A</td>
+            <td class='pa2'>@</td>
+            <td class='pa2'>{{ $.IP4.String }}</td>
+            <td class='pa2'>auto (or 3600 seconds/1 hour)</td>
+          </tr>
+        </table>
+      </div>
+      {{- end }}
+  </details>
+  {{- end }}
+  <div class='mv3'>
+    <div><span class='dark-red'>*&nbsp;</span><label for='siteName' class='b'>Site name:</label></div>
+    <ul class='list-style-disc ph3 f6 mid-gray'>
+      <li>only lowercase letters, numbers and hyphen (e.g. mycoolblog95)</li>
+      {{- if not (index $.UserFlags "NoCustomDomain") }}
+      <li>custom domain names are allowed (e.g. example.com)</li>
+      {{- end }}
+    </ul>
+    <input id='siteName' name='siteName' value='{{ $.SiteName }}' class='pv1 ph2 br2 ba w-100{{ if index $.FormErrors "siteName" }} b--invalid-red{{ end }}' required{{ if not (index $.FormErrors "siteName") }} autofocus{{ end }}>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "siteName" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <div class='mv3'>
+    <div><label for='siteTitle' class='b'>Title:</label></div>
+    <input id='siteTitle' name='siteTitle' value='{{ $.SiteTitle }}' class='pv1 ph2 br2 ba w-100{{ if index $.FormErrors "siteTitle" }} b--invalid-red{{ end }}'>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "siteTitle" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <div class='mv3'>
+    <div><label for='siteTagline' class='b'>Tagline:</label></div>
+    <input id='siteTagline' name='siteTagline' value='{{ $.SiteTagline }}' class='pv1 ph2 br2 ba w-100{{ if index $.FormErrors "siteTagline" }} b--invalid-red{{ end }}'>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "siteTagline" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <div class='mv3'>
+    <div><label for='siteDescription' class='b'>Description:</label></div>
+    <textarea id='siteDescription' name='siteDescription' class='min-h4 pv1 ph2 br2 ba w-100 resize-vertical code{{ if index $.FormErrors "siteDescription" }} b--invalid-red{{ end }}'>{{ $.SiteDescription }}</textarea>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "siteDescription" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>create site</button>
+  <div role='status'></div>
+</form>
+{{- end }}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>delete session{{ if $.Username }} - {{ $.Username }}{{ end }}</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if not $.Sessions }}
+<div>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <div class='mv3 b tc'>No sessions to delete</div>
+</div>
+{{- else }}
+<form method='post' data-prevent-double-submit>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <h3 class='mv3 b'>Delete the following session(s)?</h3>
+  <table class='mv2 collapse'>
+    <thead>
+      <tr class='bb h2'>
+        <th class='pa2'>Session token prefix</th>
+        <th class='pa2'>Label</th>
+        <th class='pa2'>Creation time</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{- range $session := $.Sessions }}
+      <tr class='bb tc'>
+        <td class='pa2'><input type='hidden' name='sessionTokenPrefix' value='{{ $session.SessionTokenPrefix }}'>{{ $session.SessionTokenPrefix }}&hellip;</td>
+        <td class='pa2'>{{ if $session.Label }}{{ $session.Label }}{{ else }}<em>- empty -</em>{{ end }}</td>
+        <td class='pa2'>{{ formatTime $session.CreationTime "2006-01-02 15:04:05 -07:00" $.TimezoneOffsetSeconds }}</td>
+      </tr>
+      {{- end }}
+    </tbody>
+  </table>
+  <button type='submit' class='button-danger ba br2 b--dark-red pa2 mv3 w-100'>Delete</button>
+</form>
+{{- end }}

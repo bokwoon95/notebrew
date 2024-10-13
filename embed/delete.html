@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>Delete file</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  {{- if $.SitePrefix }}
+  &bull;<a href='/{{ join "files" $.SitePrefix }}/' class='ma2 white'>{{ $.SitePrefix }}</a>
+  {{- end }}
+  &bull;<a href='{{ $.ContentBaseURL }}' class='ma2 white'>view site</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if or (eq $.Error "InvalidParent") (not $.Files) }}
+<div>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <div class='mv3 b tc'>No files to delete</div>
+</div>
+{{- else }}
+<form method='post' data-prevent-double-submit>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <h3 class='mv3 b'>🗑️ Delete the following files(s)?</h3>
+  <input type='hidden' name='parent' value='{{ $.Parent }}'>
+  <ul class='list-style-disc ph3'>
+    {{- range $file := $.Files }}
+    <li class='mv1'>
+      <input type='hidden' name='name' value='{{ $file.Name }}'>
+      {{- $fileType := getFileType $file.Name }}
+      {{- if $fileType.IsImg }}
+        {{- if and $.CDNDomain $.IsDatabaseFS $fileType.IsObject }}
+        <img src='//{{ $.CDNDomain }}/{{ $file.FileID }}{{ ext $file.Name }}' class='h3 w3 mr1 object-cover' loading='lazy'>
+        {{- else }}
+        <img src='/{{ join "files" $.SitePrefix $.Parent $file.Name }}?raw' class='h3 w3 mr1 object-cover' loading='lazy'>
+        {{- end }}
+      {{- end }}
+      <a href='/{{ join "files" $.SitePrefix $.Parent $file.Name }}{{ if $file.IsDir }}/{{ end }}'>{{ $file.Name }}{{ if $file.IsDir }}/{{ end }}</a>
+      {{- if or (not $file.IsDir) $.IsDatabaseFS }}
+      <span class='ml2 f6 mid-gray'>{{ humanReadableFileSize $file.Size }}</span>
+      {{- end }}
+      <span class='ml2 f6 mid-gray'>{{ $file.CreationTime.Format "2006-01-02" }}</span>
+    </li>
+    {{- end }}
+  </ul>
+  <button type='submit' class='button-danger ba br2 b--dark-red pa2 mv3 w-100'>Delete</button>
+</form>
+{{- end }}

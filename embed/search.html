@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>{{ if or $.MandatoryTerms $.OptionalTerms }}'{{ joinTerms $.MandatoryTerms $.OptionalTerms }}' - {{ len $.Matches }} result{{ if ne (len $.Matches) 1 }}s{{ end }}{{ else }}search{{ end }}</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  {{- if $.SitePrefix }}
+  &bull;<a href='/{{ join "files" $.SitePrefix }}/' class='ma2 white'>{{ $.SitePrefix }}</a>
+  {{- end }}
+  &bull;<a href='{{ $.ContentBaseURL }}' class='ma2 white'>view site</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+<form method='get' action='/{{ join "files" $.SitePrefix "search" }}/'>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- else }}
+  <div><a href='/{{ join "files" $.SitePrefix }}/'>&larr; back</a></div>
+  {{- end }}
+  {{- if and $.Parent (ne $.Parent ".") }}
+  <h1 class='f3 mv3 b'>Search in <a href='/{{ join "files" $.SitePrefix $.Parent }}/'>{{ $.Parent }}/</a></h1>
+  <input type='hidden' name='parent' value='{{ $.Parent }}'>
+  {{- else }}
+  <h1 class='f3 mv3 b'>Search</h1>
+  {{- end }}
+  {{- if or $.MandatoryTerms $.OptionalTerms }}
+  <h2><i>'{{ joinTerms $.MandatoryTerms $.OptionalTerms }}' - {{ len $.Matches }} result{{ if ne (len $.Matches) 1 }}s{{ end }}</i></h2>
+  {{- end }}
+  <div class='mv3'>
+    <div><label for='mustInclude' class='b'>Must include:</label></div>
+    <input id='mustInclude' name='mustInclude' value='{{ joinTerms $.MandatoryTerms }}' placeholder='mandatory search terms' class='pv1 ph2 br2 ba w-100'>
+  </div>
+  <div class='mv3'>
+    <div><label for='mayInclude' class='b'>May include:</label></div>
+    <input id='mayInclude' name='mayInclude' value='{{ joinTerms $.OptionalTerms }}' placeholder='optional search terms' class='pv1 ph2 br2 ba w-100'>
+  </div>
+  <div class='mv3'>
+    <div><label for='exclude' class='b'>Exclude:</label></div>
+    <input id='exclude' name='exclude' value='{{ joinTerms $.ExcludeTerms }}' placeholder='exclude search terms' class='pv1 ph2 br2 ba w-100'>
+  </div>
+  <details>
+    <summary class='pointer f6 mt1'>how to search</summary>
+    <ul class='list-style-disc ph3'>
+      <li>Pass in one or more terms to search, separated by spaces. If a term contains a space, wrap it in double quotes e.g. <code>apple iphone "steve jobs"</code>. &#8220;Fancy double quotes&#8221; are also allowed.</li>
+      <li>Search is case-insensitive.</li>
+      <li>Search only works for letters and numbers, not special characters.</li>
+    </ul>
+  </details>
+  <div class='mv3'>
+    <div class='b'>File Types (leave blank to select all):</div>
+    <div class='flex flex-wrap items-center'>
+      {{- range $fileType := $.AvailableFileTypes }}
+      <label class='mr3 pointer nowrap'>
+        <input type='checkbox' name='fileType' value='{{ $fileType }}' class='pointer'{{ if fileTypeSelected $fileType }} checked{{ end }}>
+        <span>{{ $fileType }}</span>
+      </label>
+      {{- end }}
+    </div>
+  </div>
+  <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>search</button>
+</form>
+{{- if $.Matches }}
+<ul>
+  {{- range $i, $match := $.Matches }}
+  <li>
+    <div>
+      <span class='mr1'>{{ incr $i }}.</span>
+      {{- $fileType := getFileType $match.FilePath }}
+      {{- if $fileType.IsImg }}
+        {{- if and $.CDNDomain $.IsDatabaseFS $fileType.IsObject }}
+        <img src='//{{ $.CDNDomain }}/{{ $match.FileID }}{{ ext $match.FilePath }}' class='h3 w3 ml1 object-cover' loading='lazy'>
+        {{- else }}
+        <img src='/{{ join "files" $.SitePrefix $match.FilePath }}?raw' class='h3 w3 ml1 object-cover' loading='lazy'>
+        {{- end }}
+      {{- end }}
+      <a href='/{{ join "files" $.SitePrefix $match.FilePath }}' class='b'>{{ $match.FilePath }}</a>
+      <span class='ml1 f6 mid-gray'>{{ $match.CreationTime.Format "2006-01-02" }}</span>
+      <a href='/{{ join "files" $.SitePrefix (dir $match.FilePath) }}?from={{ base $match.FilePath }}&fromEdited={{ $match.ModTime.UTC.Format "2006-01-02T150405.999999999Z" }}&fromCreated={{ $match.CreationTime.UTC.Format "2006-01-02T150405.999999999Z" }}&limit=1' class='ml1 f6'>view in folder</a>
+    </div>
+    <pre class='pre-wrap break-word'>{{ $match.Preview }}</pre>
+  </li>
+  {{- end }}
+</ul>
+{{- else }}
+  {{- if or $.MandatoryTerms $.OptionalTerms }}
+  <div class='mv2 tc'>- No matches -</div>
+  {{- end }}
+{{- end }}

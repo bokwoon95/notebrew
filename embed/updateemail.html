@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>change password{{ if $.Username }} - {{ $.Username }}{{ end }}</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if referer }}
+<div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+{{- else }}
+<div><a href='/users/profile/'>&larr; back</a></div>
+{{- end }}
+<form method='post' data-prevent-double-submit>
+  <h2 class='ma0 b'>Update email</h2>
+  <div><span class='dark-red'>*&nbsp;</span><em>required</em></div>
+  {{- if eq $.Error "FormErrorsPresent" }}
+  <div role='alert' class='w-100 br2 ph3 pv2 ba alert'>
+    <div>please fix the errors</div>
+  </div>
+  {{- end }}
+  <div class='mv3'>
+    <div><span class='dark-red'>*&nbsp;</span><label for='password' class='b'>Existing password:</label></div>
+    <input type='password' id='password' name='password' class='pv1 ph2 br2 ba w-100{{ if index $.FormErrors "password" }} b--invalid-red{{ end }}' required>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "password" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <div class='mv3'>
+    <div><span class='dark-red'>*&nbsp;</span><label for='email' class='b'>Email:</label></div>
+    <input type='email' id='email' name='email' value='{{ $.Email }}' class='pv1 ph2 br2 ba w-100{{ if index $.FormErrors "email" }} b--invalid-red{{ end }}' required>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "email" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>update email</button>
+  <div role='status'></div>
+</form>

@@ -1,0 +1,272 @@
+<title>{{ $.Category }}</title>
+<style>
+  /* global styles */
+  html { -webkit-text-size-adjust: none; text-size-adjust: none; }
+  pre { padding: 0.5rem; overflow-x: auto; }
+  code { font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace; }
+  a { cursor: pointer; }
+  /* margin all */
+  .ma0 { margin: 0; }
+  .ma1 { margin: 0.25rem; }
+  .ma2 { margin: 0.5rem; }
+  .ma3 { margin: 1rem; }
+  .ma4 { margin: 2rem; }
+  /* margin vertical */
+  .mv1 { margin-top: 0.25rem; margin-bottom: 0.25rem; }
+  .mv2 { margin-top: 0.5rem; margin-bottom: 0.5rem; }
+  .mv3 { margin-top: 1rem; margin-bottom: 1rem; }
+  .mv4 { margin-top: 2rem; margin-bottom: 2rem; }
+  /* margin horizontal */
+  .mh1 { margin-left: 0.25rem; margin-right: 0.25rem; }
+  .mh2 { margin-left: 0.5rem; margin-right: 0.5rem; }
+  .mh3 { margin-left: 1rem; margin-right: 1rem; }
+  .mh4 { margin-left: 2rem; margin-right: 2rem; }
+  /* margin top */
+  .mt1 { margin-top: 0.25rem; }
+  .mt2 { margin-top: 0.5rem; }
+  .mt3 { margin-top: 1rem; }
+  .mt4 { margin-top: 2rem; }
+  /* margin bottom */
+  .mb1 { margin-bottom: 0.25rem; }
+  .mb2 { margin-bottom: 0.5rem; }
+  .mb3 { margin-bottom: 1rem; }
+  .mb4 { margin-bottom: 2rem; }
+  /* margin left */
+  .ml1 { margin-left: 0.25rem; }
+  .ml2 { margin-left: 0.5rem; }
+  .ml3 { margin-left: 1rem; }
+  .ml4 { margin-left: 2rem; }
+  /* margin right */
+  .mr1 { margin-right: 0.25rem; }
+  .mr2 { margin-right: 0.5rem; }
+  .mr3 { margin-right: 1rem; }
+  .mr4 { margin-right: 2rem; }
+  /* padding all */
+  .pa0 { padding: 0; }
+  .pa1 { padding: 0.25rem; }
+  .pa2 { padding: 0.5rem; }
+  .pa3 { padding: 1rem; }
+  .pa4 { padding: 2rem; }
+  /* padding vertical */
+  .pv1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+  .pv2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+  .pv3 { padding-top: 1rem; padding-bottom: 1rem; }
+  .pv4 { padding-top: 2rem; padding-bottom: 2rem; }
+  /* padding horizontal */
+  .ph1 { padding-left: 0.25rem; padding-right: 0.25rem; }
+  .ph2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+  .ph3 { padding-left: 1rem; padding-right: 1rem; }
+  .ph4 { padding-left: 2rem; padding-right: 2rem; }
+  /* padding top */
+  .pt1 { padding-top: 0.25rem; }
+  .pt2 { padding-top: 0.5rem; }
+  .pt3 { padding-top: 1rem; }
+  .pt4 { padding-top: 2rem; }
+  /* padding bottom */
+  .pb1 { padding-bottom: 0.25rem; }
+  .pb2 { padding-bottom: 0.5rem; }
+  .pb3 { padding-bottom: 1rem; }
+  .pb4 { padding-bottom: 2rem; }
+  /* padding left */
+  .pl1 { padding-left: 0.25rem; }
+  .pl2 { padding-left: 0.5rem; }
+  .pl3 { padding-left: 1rem; }
+  .pl4 { padding-left: 2rem; }
+  /* padding right */
+  .pr1 { padding-right: 0.25rem; }
+  .pr2 { padding-right: 0.5rem; }
+  .pr3 { padding-right: 1rem; }
+  .pr4 { padding-right: 2rem; }
+  /* flexbox */
+  .flex { display: flex; }
+  .flex-wrap { flex-wrap: wrap; }
+  .flex-column { flex-direction: column; }
+  .flex-row { flex-direction: row; }
+  .flex-grow-1 { flex-grow: 1; }
+  .items-center { align-items: center; }
+  .items-start { align-items: flex-start; }
+  .items-end { align-items: flex-end; }
+  .justify-between { justify-content: space-between; }
+  .justify-center { justify-content: center; }
+  /* grid */
+  .grid { display: grid; }
+  .grid-template-columns-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .grid-gap-1px { grid-gap: 1px; }
+  /* fonts */
+  .b { font-weight: bold; }
+  .f1 { font-size: 3rem; }
+  .f2 { font-size: 2.25rem; }
+  .f3 { font-size: 1.5rem; }
+  .f4 { font-size: 1.25rem; }
+  .f5 { font-size: 1rem; }
+  .f6 { font-size: .875rem; }
+  /* border */
+  .bn { border-style: none; border-width: 0; }
+  .ba { border-style: solid; border-width: 1px; }
+  .bt { border-top-style: solid; border-top-width: 1px; }
+  .bb { border-bottom-style: solid; border-bottom-width: 1px; }
+  .collapse { border-collapse: collapse; border-spacing: 0; }
+  /* border radius */
+  .br2 { border-radius: 0.25rem; }
+  .br3 { border-radius: 0.5rem; }
+  /* color */
+  .black { color: black; }
+  .white { color: white; }
+  .mid-gray { color: #555555; }
+  .gray { color: #777777; }
+  .hover-black:hover,
+  .hover-black:focus { color: black; }
+  /* background color */
+  .bg-black-o-20 { background-color: rgba(0, 0, 0, 0.2); }
+  .bg-black-o-30 { background-color: rgba(0, 0, 0, 0.3); }
+  .bg-black-o-40 { background-color: rgba(0, 0, 0, 0.4); }
+  .bg-black-o-50 { background-color: rgba(0, 0, 0, 0.5); }
+  .bg-white { background-color: white; }
+  .bg-almost-white { background-color: #fafafa; }
+  .hover-bg-light-gray:hover,
+  .hover-bg-light-gray:focus { background-color: #eeeeee; }
+  .hover-bg-moon-gray:hover,
+  .hover-bg-moon-gray:focus { background-color: #cccccc; }
+  /* height */
+  .h1 { height: 1rem; }
+  .h2 { height: 2rem; }
+  .h3 { height: 4rem; }
+  .h4 { height: 8rem; }
+  .h5 { height: 16rem; }
+  .h-100 { height: 100% }
+  .mh-100  { max-height: 100%; }
+  /* width */
+  .w1 { width: 1rem; }
+  .w2 { width: 2rem; }
+  .w3 { width: 4rem; }
+  .w-100 { width: 100%; }
+  .mw-100  { max-width: 100%; }
+  .mw-150ch  { max-width: 150ch; }
+  .mw-120ch  { max-width: 120ch; }
+  .mw-100ch  { max-width: 100ch; }
+  .mw-90ch  { max-width: 90ch; }
+  .mw-80ch  { max-width: 80ch; }
+  /* display */
+  .dn { display: none; }
+  .db { display: block; }
+  .dib { display: inline-block; }
+  /* position */
+  .absolute { position: absolute; }
+  .center { margin-right: auto; margin-left: auto; }
+  .relative { position: relative; }
+  .top-0 { top: 0; }
+  .right-0 { right: 0; }
+  .bottom-0 { bottom: 0; }
+  .left-0 { left: 0; }
+  /* text */
+  .tc { text-align: center; }
+  .tr { text-align: right; }
+  .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ws-normal { white-space: normal; }
+  .nowrap { white-space: nowrap; }
+  .pre-wrap { white-space: pre-wrap; }
+  .break-word { overflow-wrap: break-word; word-break: break-word; }
+  /* opacity */
+  .o-0 { opacity: 0; }
+  .o-50 { opacity: 0.5; }
+  .hover-o-100:hover,
+  .hover-o-100:focus { opacity: 1; }
+  /* transition */
+  .transition-opacity	{ transition-property: opacity; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+  /* misc */
+  .list-style-none { list-style: none; }
+  .resize-vertical { resize: vertical; }
+  .overflow-auto { overflow: auto; }
+  .overflow-hidden { overflow: hidden; }
+  .no-underline { text-decoration: none; }
+  .hover-no-underline:hover,
+  .hover-no-underline:focus { text-decoration: none; }
+  .underline { text-decoration: underline; }
+  .hover-underline:hover,
+  .hover-underline:focus { text-decoration: underline; }
+  .ho-no-underline {}
+  .object-cover { object-fit: cover; }
+  .aspect-square { aspect-ratio: 1; }
+</style>
+<style>
+  body {
+    background-color: #fcfcfc;
+    max-width: 90ch;
+    padding: 0 0.5rem;
+    margin: 1rem auto;
+    font-family: system-ui, sans-serif;
+    line-height: 1.5rem;
+  }
+  a { text-decoration: none; color: #0000ee; }
+  a:hover,
+  a:focus { text-decoration: underline; }
+</style>
+<header>
+  <div class='f3'>{{ $.Site.Title }}</div>
+  {{ if $.Site.Tagline }}
+  <div class='f6'>{{ $.Site.Tagline }}</div>
+  {{ end }}
+  {{ if $.Site.NavigationLinks }}
+  <nav>
+    <ul class='list-style-none flex flex-wrap pa0 mv2 bt bb'>
+      {{ range $i, $navigationLink := $.Site.NavigationLinks }}
+      <li class='mv2 mr3'><a href='{{ $navigationLink.URL }}'>{{ $navigationLink.Name }}</a></li>
+      {{ end }}
+    </ul>
+  </nav>
+  {{ end }}
+</header>
+{{ if $.Category }}
+<h1 class='mv3 pa0'>{{ title (replace $.Category "-" " ") }}</h1>
+{{ end }}
+{{ if $.Posts }}
+{{ template "pagination" $ }}
+<ul class='ma0 pa0 list-style-none'>
+  {{ range $i, $post := $.Posts }}
+  {{ if $i }}<hr>{{ end }}
+  <li class='mv3'>
+    <div>
+      {{ if $post.Images }}
+      {{ $image := index $post.Images 0 }}
+      <img src='/{{ join $image.Parent $image.Name }}' alt='{{ $image.AltText }}' class='h3 w3 mr1 object-cover' loading='lazy'>
+      {{ end }}
+      <a href='/{{ join "posts" $.Category $post.Name }}/' class='f4'>{{ $post.Title }}</a>
+      <span class='ml2 f6 mid-gray'>{{ formatTime $post.CreationTime "2006-01-02" $.Site.TimezoneOffsetSeconds }}</span>
+    </div>
+    <div class='mv1'>
+      {{ $post.Preview }}{{ if $post.HasMore }} <a href='/{{ join "posts" $.Category $post.Name }}/'>read more</a>{{ end }}
+    </div>
+  </li>
+  {{ end }}
+</ul>
+{{ template "pagination" $ }}
+{{ else }}
+<p>- No posts -</p>
+{{ end }}
+<div class='mv3 h1 w1'>
+  <a href='/{{ join "posts" $.Category "feed.atom" }}'>
+    <svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 455.731 455.731" xml:space="preserve">
+      <g>
+        <rect x="0" y="0" style="fill:#F78422;" width="455.731" height="455.731"/>
+        <g>
+          <path style="fill:#FFFFFF;" d="M296.208,159.16C234.445,97.397,152.266,63.382,64.81,63.382v64.348
+            c70.268,0,136.288,27.321,185.898,76.931c49.609,49.61,76.931,115.63,76.931,185.898h64.348
+            C391.986,303.103,357.971,220.923,296.208,159.16z"/>
+          <path style="fill:#FFFFFF;" d="M64.143,172.273v64.348c84.881,0,153.938,69.056,153.938,153.939h64.348
+            C282.429,270.196,184.507,172.273,64.143,172.273z"/>
+          <circle style="fill:#FFFFFF;" cx="109.833" cy="346.26" r="46.088"/>
+        </g>
+      </g>
+    </svg>
+  </a>
+</div>
+
+{{ define "pagination" }}
+  {{ if ne $.Pagination.First $.Pagination.Last }}
+  <div class='mv2 pa0 f5'>
+    {{ range $number := $.Pagination.Numbers }}
+    <a href='/{{ join "posts" $.Category (case $number 1 "" $number) }}/' class='pv2 ph3 black hover-bg-moon-gray{{ if eq $number $.Pagination.Current }} b underline{{ else }} hover-no-underline{{ end }}'>{{ $number }}</a>&nbsp;
+    {{ end }}
+  </div>
+  {{ end }}
+{{ end }}

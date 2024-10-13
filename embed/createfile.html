@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module' src='/files/static/editor-01kcb5bw.js'></script>
+<script type='module'>{{ baselineJS }}</script>
+<title>Create file</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  {{- if $.SitePrefix }}
+  &bull;<a href='/{{ join "files" $.SitePrefix }}/' class='ma2 white'>{{ $.SitePrefix }}</a>
+  {{- end }}
+  &bull;<a href='{{ $.ContentBaseURL }}' class='ma2 white'>view site</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if eq $.Error "InvalidParent" }}
+<div>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <div class='mv3 b tc'>Can't create a file here.</div>
+</div>
+{{- else }}
+<form method='post' enctype='multipart/form-data' action='/{{ join "files" $.SitePrefix "createfile" }}/' class='mv2'{{ if $.UploadableExts }} data-upload-file{{ else }} data-prevent-double-submit{{ end }}>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- else }}
+  <div><a href='/{{ join "files" $.SitePrefix $.Parent }}/'>&larr; back</a></div>
+  {{- end }}
+  <div class='flex flex-wrap break-word mv3'>
+    <h1 class='f3 b mv0'>
+      {{- if eq (head $.Parent) "notes" }}
+      Create a new note in <a href='/{{ join "files" $.SitePrefix $.Parent }}/'>{{ base $.Parent }}/</a>
+      {{- else if eq (head $.Parent) "pages" }}
+      Create a new page in <a href='/{{ join "files" $.SitePrefix $.Parent }}/'>{{ base $.Parent }}/</a>
+      {{- else if eq (head $.Parent) "posts" }}
+        Create a new post in <a href='/{{ join "files" $.SitePrefix $.Parent }}/'>{{ if eq $.Parent "posts" }}posts/{{ else }}{{ base $.Parent }}/{{ end }}</a>
+      {{- else if eq (head $.Parent) "output" }}
+        {{- if eq (head (tail $.Parent)) "themes" }}
+        Create a new file in <a href='/{{ join "files" $.SitePrefix $.Parent }}/'>{{ base $.Parent }}/</a>
+        {{- else if eq $.Parent "output" }}
+        Create a new file for <a href='/{{ join "files" $.SitePrefix "pages/index.html" }}'>index.html</a>
+        {{- else }}
+        Create a new file for <a href='/{{ join "files" $.SitePrefix "pages" (tail $.Parent) }}.html'>{{ base $.Parent }}.html</a>
+        {{- end }}
+      {{- else }}
+      Create a new file in <a href='/{{ join "files" $.SitePrefix $.Parent }}/'>{{ base $.Parent }}/</a>
+      {{- end }}
+    </h1>
+    <div class='flex-grow-1'></div>
+    <div class='flex items-end'>
+      <label for='wordwrap' class='pointer flex items-center mh2'>
+        <input id='wordwrap' type='checkbox' class='pointer'>
+        <span class='mh1'>word wrap</span>
+      </label>
+      <button type='submit' class='button ba ph2 br2 b--black pv1'>
+        {{- if eq (head $.Parent) "notes" }}
+        create note
+        {{- else if eq (head $.Parent) "pages" }}
+        create page
+        {{- else if eq (head $.Parent) "posts" }}
+        create post
+        {{- else }}
+        create file
+        {{- end }}
+      </button>
+    </div>
+  </div>
+  <input type='hidden' name='parent' value='{{ $.Parent }}'>
+  <div class='mv3'>
+    <div><label for='name' class='b'>Name{{ if eq (head $.Parent) "notes" "posts" }} (optional){{ end }}:</label></div>
+    <div class='flex'>
+      <input id='name' name='name' value='{{ $.Name }}' class='pv1 ph2 br2 ba flex-grow-1{{ if index $.FormErrors "name" }} b--invalid-red{{ end }}'{{ if not (eq (head $.Parent) "notes" "posts") }} autofocus{{ end }}>
+      <select name='ext' class='br2 ml2{{ if index $.FormErrors "name" }} b--invalid-red{{ end }}'>
+        {{- range $ext := $.FileExts }}
+        <option{{ if eq $ext $.Ext }} selected{{ end }}>{{ $ext }}</option>
+        {{- end }}
+      </select>
+    </div>
+    <ul class='list-style-disc ph3 f6 invalid-red'>
+      {{- range $error := index $.FormErrors "name" }}
+      <li>{{ $error }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  <div data-editor='{"extElementName":"ext","wordwrapCheckboxID":"wordwrap","ajaxSubmission":{{ gt (len $.UploadableExts) 0 }}}'>
+    <textarea id='content' name='content' dir='auto' class='w-100 pa2 min-h5 h6 resize-vertical code'>{{ $.Content }}</textarea>
+  </div>
+  {{- if $.UploadableExts }}
+  <div class='mt2'>
+    <div class='b'>Assets:</div>
+    <div><input type='file' name='file' style='max-width: 220px;' accept='{{ joinStrings $.UploadableExts "," }}' multiple></div>
+    <div><input placeholder='paste images here' class='mt2' data-paste='{"name":"file","ext":{{ jsonArray $.UploadableExts }}}'></div>
+  </div>
+  {{- end }}
+  <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>
+    {{- if eq (head $.Parent) "notes" }}
+    create note
+    {{- else if eq (head $.Parent) "pages" }}
+    create page
+    {{- else if eq (head $.Parent) "posts" }}
+    create post
+    {{- else }}
+    create file
+    {{- end }}
+  </button>
+  <div class='f6'>tip: press Ctrl+S (or Cmd+S on macOS) to save when the textbox is focused</div>
+  <div role='status'></div>
+</form>
+{{- end }}

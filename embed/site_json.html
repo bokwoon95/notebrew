@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module' src='/files/static/editor-01kcb5bw.js'></script>
+<script type='module' src='/files/static/site_json.js'></script>
+<script type='module'>{{ baselineJS }}</script>
+<title>site.json (site settings)</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  {{- if $.SitePrefix }}
+  &bull;<a href='/{{ join "files" $.SitePrefix }}/' class='ma2 white'>{{ $.SitePrefix }}</a>
+  {{- end }}
+  &bull;<a href='{{ $.ContentBaseURL }}' class='ma2 white'>view site</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if eq (index $.PostRedirectGet "from") "site.json" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  <div class='pv1'>
+    <div>saved settings (regenerated {{ $.RegenerationStats.Count }} file{{ if ne $.RegenerationStats.Count 1 }}s{{ end }} in {{ $.RegenerationStats.TimeTaken }}): <a href='{{ $.ContentBaseURL }}'>view</a></div>
+  </div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+<form method='post' action='/{{ join "files" $.SitePrefix "site.json" }}' class='mv2' data-prevent-double-submit>
+  {{- if $.RegenerationStats.TemplateError.ErrorMessage }}
+  <div class='mv2 invalid-red'>
+    <span class='b'>template error: </span>
+    {{- $path := "" }}
+    {{- if $.RegenerationStats.TemplateError.Name }}
+      {{- if hasPrefix $.RegenerationStats.TemplateError.Name "/themes/" }}
+      {{- $path = join "files" $.SitePrefix "output" $.RegenerationStats.TemplateError.Name }}
+      {{- else }}
+      {{- $path = join "files" $.SitePrefix $.RegenerationStats.TemplateError.Name }}
+      {{- end }}
+    {{- end }}
+    {{- if $path }}
+    <a href='/{{ $path }}{{ if $.RegenerationStats.TemplateError.Line }}#L{{ $.RegenerationStats.TemplateError.Line }}{{ end }}'>{{ $.RegenerationStats.TemplateError.Name }}{{ if $.RegenerationStats.TemplateError.Line }}:{{ $.RegenerationStats.TemplateError.Line }}{{ end }}</a>: {{ $.RegenerationStats.TemplateError.ErrorMessage }}
+    {{- else }}
+    {{ $.RegenerationStats.TemplateError.ErrorMessage }}
+    {{- end }}
+  </div>
+  {{- end }}
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- else }}
+  <div><a href='/{{ join "files" $.SitePrefix }}{{ if not (contains $.SitePrefix ".") }}/{{ end }}'>&larr; back</a></div>
+  {{- end }}
+  <h1 class='f3 mv3 b'>site.json (site settings)</h1>
+  <div class='flex mv2'>
+    <div class='flex-grow-1'></div>
+    <button type='submit' class='button ba ph3 pv1 br2 b--black'>save</button>
+  </div>
+  <div class='mv3'>
+    <div><label for='languageCode' class='b'>Content language:</label></div>
+    <select id='languageCode' name='languageCode' class='br2'>
+      {{- range $languageCode, $_ := languageCodes }}
+      <option value='{{ $languageCode }}'{{ if eq $.LanguageCode $languageCode }} selected{{ end }}>{{ $languageCode }} {{ getLanguageName $languageCode }}</option>
+      {{- end }}
+    </select>
+  </div>
+  <div class='mv3'>
+    <div><label for='title' class='b'>Title:</label></div>
+    <input id='title' name='title' value='{{ $.Title }}' class='pv1 ph2 br2 ba w-100'>
+  </div>
+  <div class='mv3'>
+    <div><label for='tagline' class='b'>Tagline:</label></div>
+    <input id='tagline' name='tagline' value='{{ $.Tagline }}' class='pv1 ph2 br2 ba w-100'>
+  </div>
+  <div class='mv3'>
+    <div><label for='emoji' class='b'>Emoji:</label></div>
+    <input id='emoji' name='emoji' value='{{ $.Emoji }}' class='pv1 ph2 br2 ba'>
+  </div>
+  <div class='mv3'>
+    <div><label for='favicon' class='b'>Favicon (optional):</label></div>
+    <input id='favicon' name='favicon' value='{{ $.Favicon }}' class='pv1 ph2 br2 ba w-100'>
+  </div>
+  <div class='mv3'>
+    <div><label for='codeStyle' class='b'>Code Style (<a href='/files/static/chroma-style-gallery-01kcb5ma.html'>Chroma Style Gallery</a>):</label></div>
+    <select id='codeStyle' name='codeStyle' class='br2'>
+      {{- range $codeStyle, $_ := chromaStyles }}
+      <option value='{{ $codeStyle }}'{{ if eq $.CodeStyle $codeStyle }} selected{{ end }}>{{ $codeStyle }}</option>
+      {{- end }}
+    </select>
+    <details>
+      <summary class='pointer'>supported languages</summary>
+      <div class='overflow-x-auto'>
+        <table class='mv2 collapse'>
+          <thead>
+            <tr class='bb h2'>
+              <th class='pa2'>Prefix</th>
+              <th class='pa2'>Language</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class='bb'>
+              <td class='pa2'>A</td>
+              <td class='pa2'>ABAP, ABNF, ActionScript, ActionScript 3, Ada, Agda, AL, Alloy, Angular2, ANTLR, ApacheConf, APL, AppleScript, ArangoDB AQL, Arduino, ArmAsm, AutoHotkey, AutoIt, Awk</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>B</td>
+              <td class='pa2'>Ballerina, Bash, Bash Session, Batchfile, BibTeX, Bicep, BlitzBasic, BNF, BQN, Brainfuck</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>C</td>
+              <td class='pa2'>C, C#, C++, Caddyfile, Caddyfile Directives, Cap'n Proto, Cassandra CQL, Ceylon, CFEngine3, cfstatement, ChaiScript, Chapel, Cheetah, Clojure, CMake, COBOL, CoffeeScript, Common Lisp, Coq, Crystal, CSS, Cython</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>D</td>
+              <td class='pa2'>D, Dart, Dax, Desktop Entry, Diff, Django/Jinja, dns, Docker, DTD, Dylan</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>E</td>
+              <td class='pa2'>EBNF, Elixir, Elm, EmacsLisp, Erlang</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>F</td>
+              <td class='pa2'>Factor, Fennel, Fish, Forth, Fortran, FortranFixed, FSharp</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>G</td>
+              <td class='pa2'>GAS, GDScript, Genshi, Genshi HTML, Genshi Text, Gherkin, GLSL, Gnuplot, Go, Go HTML Template, Go Text Template, GraphQL, Groff, Groovy</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>H</td>
+              <td class='pa2'>Handlebars, Hare, Haskell, Haxe, HCL, Hexdump, HLB, HLSL, HolyC, HTML, HTTP, Hy</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>I</td>
+              <td class='pa2'>Idris, Igor, INI, Io, ISCdhcpd</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>J</td>
+              <td class='pa2'>J, Java, JavaScript, JSON, Julia, Jungle</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>K</td>
+              <td class='pa2'>Kotlin</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>L</td>
+              <td class='pa2'>Lighttpd configuration file, LLVM, Lua</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>M</td>
+              <td class='pa2'>Makefile, Mako, markdown, Mason, Materialize SQL dialect, Mathematica, Matlab, mcfunction, Meson, Metal, MiniZinc, MLIR, Modula-2, MonkeyC, MorrowindScript, Myghty, MySQL</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>N</td>
+              <td class='pa2'>NASM, Natural, Newspeak, Nginx configuration file, Nim, Nix</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>O</td>
+              <td class='pa2'>Objective-C, OCaml, Octave, Odin, OnesEnterprise, OpenEdge ABL, OpenSCAD, Org Mode</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>P</td>
+              <td class='pa2'>PacmanConf, Perl, PHP, PHTML, Pig, PkgConfig, PL/pgSQL, plaintext, Plutus Core, Pony, PostgreSQL SQL dialect, PostScript, POVRay, PowerQuery, PowerShell, Prolog, PromQL, Promela, properties, Protocol Buffer, PRQL, PSL, Puppet, Python, Python 2</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>Q</td>
+              <td class='pa2'>QBasic, QML</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>R</td>
+              <td class='pa2'>R, Racket, Ragel, Raku, react, ReasonML, reg, Rego, reStructuredText, Rexx, RPMSpec, Ruby, Rust</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>S</td>
+              <td class='pa2'>SAS, Sass, Scala, Scheme, Scilab, SCSS, Sed, Sieve, Smali, Smalltalk, Smarty, Snobol, Solidity, SourcePawn, SPARQL, SQL, SquidConf, Standard ML, stas, Stylus, Svelte, Swift, SYSTEMD, systemverilog</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>T</td>
+              <td class='pa2'>TableGen, Tal, TASM, Tcl, Tcsh, Termcap, Terminfo, Terraform, TeX, Thrift, TOML, TradingView, Transact-SQL, Turing, Turtle, Twig, TypeScript, TypoScript, TypoScriptCssData, TypoScriptHtmlData</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>V</td>
+              <td class='pa2'>V, V shell, Vala, VB.net, verilog, VHDL, VHS, VimL, vue</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>W</td>
+              <td class='pa2'>WDTE, WebGPU Shading Language, Whiley</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>X</td>
+              <td class='pa2'>XML, Xorg</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>Y</td>
+              <td class='pa2'>YAML, YANG</td>
+            </tr>
+            <tr class='bb'>
+              <td class='pa2'>Z</td>
+              <td class='pa2'>Z80 Assembly, Zed, Zig</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </div>
+  <div class='mv3'>
+    <div><label for='timezoneOffset' class='b'>Preferred Timezone Offset:</label></div>
+    <select id='timezoneOffset' name='timezoneOffset' class='br2'>
+      <option value='-12:00'{{ if eq $.TimezoneOffset "-12:00" }} selected{{ end }}>-12:00</option>
+      <option value='-11:00'{{ if eq $.TimezoneOffset "-11:00" }} selected{{ end }}>-11:00</option>
+      <option value='-10:00'{{ if eq $.TimezoneOffset "-10:00" }} selected{{ end }}>-10:00</option>
+      <option value='-09:30'{{ if eq $.TimezoneOffset "-09:30" }} selected{{ end }}>-09:30</option>
+      <option value='-09:00'{{ if eq $.TimezoneOffset "-09:00" }} selected{{ end }}>-09:00</option>
+      <option value='-08:00'{{ if eq $.TimezoneOffset "-08:00" }} selected{{ end }}>-08:00</option>
+      <option value='-07:00'{{ if eq $.TimezoneOffset "-07:00" }} selected{{ end }}>-07:00</option>
+      <option value='-06:00'{{ if eq $.TimezoneOffset "-06:00" }} selected{{ end }}>-06:00</option>
+      <option value='-05:00'{{ if eq $.TimezoneOffset "-05:00" }} selected{{ end }}>-05:00</option>
+      <option value='-04:00'{{ if eq $.TimezoneOffset "-04:00" }} selected{{ end }}>-04:00</option>
+      <option value='-03:00'{{ if eq $.TimezoneOffset "-03:00" }} selected{{ end }}>-03:00</option>
+      <option value='-02:00'{{ if eq $.TimezoneOffset "-02:00" }} selected{{ end }}>-02:00</option>
+      <option value='-01:00'{{ if eq $.TimezoneOffset "-01:00" }} selected{{ end }}>-01:00</option>
+      <option value='+00:00'{{ if eq $.TimezoneOffset "+00:00" }} selected{{ end }}>+00:00</option>
+      <option value='+01:00'{{ if eq $.TimezoneOffset "+01:00" }} selected{{ end }}>+01:00</option>
+      <option value='+02:00'{{ if eq $.TimezoneOffset "+02:00" }} selected{{ end }}>+02:00</option>
+      <option value='+03:00'{{ if eq $.TimezoneOffset "+03:00" }} selected{{ end }}>+03:00</option>
+      <option value='+03:30'{{ if eq $.TimezoneOffset "+03:30" }} selected{{ end }}>+03:30</option>
+      <option value='+04:00'{{ if eq $.TimezoneOffset "+04:00" }} selected{{ end }}>+04:00</option>
+      <option value='+04:30'{{ if eq $.TimezoneOffset "+04:30" }} selected{{ end }}>+04:30</option>
+      <option value='+05:00'{{ if eq $.TimezoneOffset "+05:00" }} selected{{ end }}>+05:00</option>
+      <option value='+05:30'{{ if eq $.TimezoneOffset "+05:30" }} selected{{ end }}>+05:30</option>
+      <option value='+05:45'{{ if eq $.TimezoneOffset "+05:45" }} selected{{ end }}>+05:45</option>
+      <option value='+06:00'{{ if eq $.TimezoneOffset "+06:00" }} selected{{ end }}>+06:00</option>
+      <option value='+06:30'{{ if eq $.TimezoneOffset "+06:30" }} selected{{ end }}>+06:30</option>
+      <option value='+07:00'{{ if eq $.TimezoneOffset "+07:00" }} selected{{ end }}>+07:00</option>
+      <option value='+08:00'{{ if eq $.TimezoneOffset "+08:00" }} selected{{ end }}>+08:00</option>
+      <option value='+08:45'{{ if eq $.TimezoneOffset "+08:45" }} selected{{ end }}>+08:45</option>
+      <option value='+09:00'{{ if eq $.TimezoneOffset "+09:00" }} selected{{ end }}>+09:00</option>
+      <option value='+09:30'{{ if eq $.TimezoneOffset "+09:30" }} selected{{ end }}>+09:30</option>
+      <option value='+10:00'{{ if eq $.TimezoneOffset "+10:00" }} selected{{ end }}>+10:00</option>
+      <option value='+10:30'{{ if eq $.TimezoneOffset "+10:30" }} selected{{ end }}>+10:30</option>
+      <option value='+11:00'{{ if eq $.TimezoneOffset "+11:00" }} selected{{ end }}>+11:00</option>
+      <option value='+12:00'{{ if eq $.TimezoneOffset "+12:00" }} selected{{ end }}>+12:00</option>
+      <option value='+12:45'{{ if eq $.TimezoneOffset "+12:45" }} selected{{ end }}>+12:45</option>
+      <option value='+13:00'{{ if eq $.TimezoneOffset "+13:00" }} selected{{ end }}>+13:00</option>
+      <option value='+14:00'{{ if eq $.TimezoneOffset "+14:00" }} selected{{ end }}>+14:00</option>
+    </select>
+  </div>
+  <div class='mv3'>
+    <div><label for='description' class='b'>Description:</label></div>
+    <div data-editor='{"ext":".md"}'>
+      <input type='hidden' name='ext:0' value='.md'>
+      <textarea id='description' name='description' dir='auto' class='w-100 pa2 min-h5 h6 resize-vertical code'>{{ $.Description }}</textarea>
+    </div>
+  </div>
+  <div class='mv3'>
+    <div class='b'>Navigation Links:</div>
+    <div data-navigation-links>
+      {{- range $i, $navigationLink := $.NavigationLinks }}
+      <fieldset data-navigation-link>
+        <legend>item {{ incr $i }}</legend>
+        <div class='mv1'>
+          <label for='navigationLinkName:{{ $i }}'>
+            <span class='b'>Name: </span>
+            <input id='navigationLinkName:{{ $i }}' name='navigationLinkName' value='{{ $navigationLink.Name }}' class='pv1 ph2 br2 ba'>
+          </label>
+        </div>
+        <div class='mv1'>
+          <label for='navigationLinkURL:{{ $i }}'>
+            <span class='b'>URL: </span>
+            <input id='navigationLinkURL:{{ $i }}' name='navigationLinkURL' value='{{ $navigationLink.URL }}' class='pv1 ph2 br2 ba'>
+          </label>
+        </div>
+      </fieldset>
+      {{- end }}
+    </div>
+    <div class='mt2'>
+      <button type='button' class='button ba br2 pv1 b--black' data-add-navigation-link>add item</button>
+      <button type='button' class='button ba br2 pv1 b--black' data-remove-navigation-link>remove item</button>
+    </div>
+  </div>
+  <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>save</button>
+</form>

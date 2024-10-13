@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<link rel='stylesheet' href='/files/static/styles.css'>
+<script type='module' src='/files/static/baseline.js'></script>
+<title>{{ $.Title }}</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+</nav>
+<div class='center'>
+  {{- if $.Referer }}
+  <div><a href='{{ $.Referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <h3 class='f3 mv2 tc b'>{{ safeHTML $.Headline }}</h3>
+  <div class='mv2 tc'>{{ safeHTML $.Byline }}</div>
+  {{- if $.Details }}
+  <details>
+    <summary>details</summary>
+    <pre class='ws-normal'>{{ $.Details }}</pre>
+    {{- if $.Callers }}
+    <strong>stack trace:</strong>
+    <ul>
+      {{- range $caller := $.Callers }}
+      <li>{{ $caller }}</li>
+      {{- end }}
+    </ul>
+    {{- end }}
+    <strong>version:</strong>
+    <div>{{ $.Version }}</div>
+  </details>
+  {{- end }}
+</div>

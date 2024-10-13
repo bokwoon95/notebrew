@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>profile{{ if $.Username }} - {{ $.Username }}{{ end }}</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if eq (index $.PostRedirectGet "from") "updateprofile" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  <div class='pv1'>updated profile</div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- if eq (index $.PostRedirectGet "from") "calculatestorage" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  <div class='pv1'>recalculated storage in {{ index $.PostRedirectGet "timeTaken" }}</div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- if eq (index $.PostRedirectGet "from") "updateemail" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  <div class='pv1'>updated email</div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- if eq (index $.PostRedirectGet "from") "deletesession" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  <div class='pv1'>deleted session(s)</div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+{{- if eq (index $.PostRedirectGet "from") "updateprofile" }}
+<div><a href='/files/'>&larr; back</a></div>
+{{- else if referer }}
+<div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+{{- else }}
+<div><a href='/files/'>&larr; back</a></div>
+{{- end }}
+{{- if $.DisableReason }}
+<h2 class='mv0 mh2 invalid-red'>ACCOUNT DISABLED</h2>
+<div><span class='b invalid-red'>Disable reason:</span> {{ $.DisableReason }}</div>
+{{- end }}
+<h2 class='mb0 mh2 underline'>Profile</h2>
+<div class='ma2'>
+  <a href='/users/updateprofile/'>update profile</a>
+</div>
+<div class='overflow-x-auto'>
+  <table class='ma2 collapse'>
+    <tr class='bb bt'>
+      <td class='pa2 b'>Username</td>
+      <td class='pa2'>{{ if $.Username }}{{ $.Username }}{{ else }}<em>default user</em>{{ end }}</td>
+    </tr>
+    <tr class='bb'>
+      <td class='pa2 b'>Email</td>
+      <td class='pa2'>{{ $.Email }} <a href='/users/updateemail/'>update email</a></td>
+    </tr>
+    <tr class='bb'>
+      <td class='pa2 b'>Password</td>
+      <td class='pa2'><a href='/users/changepassword/'>change password</a></td>
+    </tr>
+    <tr class='bb'>
+      <td class='pa2 b'>Preferred timezone offset</td>
+      <td class='pa2'>{{ formatTimezone $.TimezoneOffsetSeconds }}</td>
+    </tr>
+    <tr class='bb'>
+      <td class='pa2 b'>Current site limit</td>
+      <td class='pa2'>{{ if gt $.SiteLimit 0 }}{{ $.SiteLimit }}{{ else }}-{{ end }}</td>
+    </tr>
+    <tr class='bb'>
+      <td class='pa2 b'>Current storage limit</td>
+      <td class='pa2'>{{ if gt $.StorageLimit 0 }}{{ humanReadableFileSize $.StorageLimit }}{{ else }}-{{ end }}</td>
+    </tr>
+    <tr class='bb'>
+      <td class='pa2 b'>Upload images</td>
+      <td class='pa2'>{{ if index $.UserFlags "NoUploadImage" }}❌{{ else }}✅{{ end }}</td>
+    </tr>
+    <tr class='bb'>
+      <td class='pa2 b'>Use custom domains</td>
+      <td class='pa2'>{{ if index $.UserFlags "NoCustomDomain" }}❌{{ else }}✅{{ end }}</td>
+    </tr>
+  </table>
+</div>
+<h2 class='mb0 mh2 underline'>Sites</h2>
+<div class='overflow-x-auto'>
+  <table class='ma2 collapse'>
+    <thead>
+      <tr class='bb h2'>
+        <th class='pv2'>Site names</th>
+        <th class='pv2'>Size</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{- range $site := $.Sites }}
+      <tr class='bb'>
+        <td class='pa2'><a href='/{{ join "files" (sitePrefix $site.SiteName) }}/'>{{ if $site.SiteName }}{{ $site.SiteName }}{{ else }}<em>default site</em>{{ end }}</a></td>
+        <td class='pa2'>{{ humanReadableFileSize $site.StorageUsed }}</td>
+      </tr>
+      {{- end }}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td class='pa2 b tr'>Storage Used:</td>
+        <td class='pa2'>{{ humanReadableFileSize $.StorageUsed }}{{ if gt $.StorageLimit 0 }} / {{ humanReadableFileSize $.StorageLimit }}{{ end }}</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+<form method='post' action='/files/calculatestorage/' class='ma2' data-prevent-double-submit='{"statusText":"recalculating..."}'>
+  {{- range $site := $.Sites }}
+  <input type='hidden' name='siteName' value='{{ $site.SiteName }}'>
+  {{- end }}
+  <button type='submit' class='button ba ph3 br2 b--black pv1'>recalculate</button>
+  <div role='status'></div>
+</form>
+<h2 class='mb0 mh2 underline'>Sessions</h2>
+<div>
+  <a href='/users/createsession/' class='ma1'>create session token</a>
+  &bull;
+  <a href='https://notebrew.com/documentation/api-documentation/' class='ma1'>API documentation</a>
+</div>
+<form class='overflow-x-auto'>
+  <table class='mv2 collapse'>
+    <thead>
+      <tr class='bb h2'>
+        <th class='pa2'><input type='checkbox' data-checkbox-leader></th>
+        <th class='pa2'>Session token prefix</th>
+        <th class='pa2'>Label</th>
+        <th class='pa2'>Creation time</th>
+        <th class='pa2'></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{- range $session := $.Sessions }}
+      <tr class='bb tc'>
+        <td class='pa2'>{{ if $session.Current }}{{ else }}<input type='checkbox' name='sessionTokenPrefix' value='{{ $session.SessionTokenPrefix }}' data-checkbox-follower>{{ end }}</td>
+        <td class='pa2{{ if $session.Current}} b{{ end }}'>{{ $session.SessionTokenPrefix }}&hellip;</td>
+        <td class='pa2'>{{ if $session.Label }}{{ $session.Label }}{{ else }}<em>- empty -</em>{{ end }}</td>
+        <td class='pa2'>{{ formatTime $session.CreationTime "2006-01-02 15:04:05 -07:00" $.TimezoneOffsetSeconds }}</td>
+        <td class='pa2{{ if $session.Current}} b{{ end }}'>
+          {{- if not $session.Current }}
+          <button type='submit' formmethod='get' formaction='/users/deletesession/' name='sessionTokenPrefix' value='{{ $session.SessionTokenPrefix }}' class='button-danger ba br2 b--dark-red ph2 pv1'>delete</button>
+          {{- else }}
+          <em>current session</em>
+          {{- end }}
+        </td>
+      </tr>
+      {{- end }}
+    </tbody>
+  </table>
+</form>
+
+{{- define "octicons-plus" }}
+<svg aria-hidden='true' height='16' viewBox='0 0 16 16' version='1.1' width='16' data-view-component='true' class='octicon octicon-plus'>
+  <path d='M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z'></path>
+</svg>
+{{- end }}
+
+{{- define "octicons-triangle-down" }}
+<svg aria-hidden='true' height='16' viewBox='0 0 16 16' version='1.1' width='16' data-view-component='true' class='octicon octicon-triangle-down'>
+  <path d='m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z'></path>
+</svg>
+{{- end }}
+
+{{- define "heroicons-ellipsis-horizontal" }}
+<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24'>
+  <path d='M5 12H5.01M12 12H12.01M19 12H19.01M6 12C6 12.5523 5.55228 13 5 13C4.44772 13 4 12.5523 4 12C4 11.4477 4.44772 11 5 11C5.55228 11 6 11.4477 6 12ZM13 12C13 12.5523 12.5523 13 12 13C11.4477 13 11 12.5523 11 12C11 11.4477 11.4477 11 12 11C12.5523 11 13 11.4477 13 12ZM20 12C20 12.5523 19.5523 13 19 13C18.4477 13 18 12.5523 18 12C18 11.4477 18.4477 11 19 11C19.5523 11 20 11.4477 20 12Z' stroke='#4A5568' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'/>
+</svg>
+{{- end }}

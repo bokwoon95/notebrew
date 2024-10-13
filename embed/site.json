@@ -1,0 +1,20 @@
+{
+  "languageCode": "{{ if $.LanguageCode }}{{ $.LanguageCode }}{{ else }}en{{ end }}",
+  "title": "{{ if $.Title }}{{ $.Title }}{{ else }}My Blog{{ end }}",
+  "tagline": "{{ $.Tagline }}",
+  "emoji": "{{ if $.Emoji }}{{ $.Emoji }}{{ else }}☕{{ end }}",
+  "favicon": "",
+  "codeStyle": "{{ if $.CodeStyle }}{{ $.CodeStyle}}{{ else }}onedark{{ end }}",
+  "timezoneOffset": "{{ if $.TimezoneOffset }}{{ $.TimezoneOffset }}{{ else }}+00:00{{ end }}",
+  "description": "{{ if $.Description }}{{ $.Description }}{{ else }}# Hello World!\n\nWelcome to my blog.{{ end }}",
+  "navigationLinks": [
+    {
+      "name": "Home",
+      "url": "/"
+    },
+    {
+      "name": "Posts",
+      "url": "/posts/"
+    }
+  ]
+}

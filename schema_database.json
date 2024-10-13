@@ -1,0 +1,391 @@
+[
+  {
+    "table": "site",
+    "columns": [
+      {
+        "column": "site_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "primarykey": true
+      },
+      {
+        "column": "site_name",
+        "type": {
+          "default": "VARCHAR(500)"
+        },
+        "unique": true,
+        "notnull": true
+      },
+      {
+        "column": "storage_used",
+        "type": {
+          "default": "BIGINT"
+        }
+      }
+    ]
+  },
+  {
+    "table": "users",
+    "indexes": [
+      {
+        "columns": [
+          "reset_token_hash"
+        ],
+        "predicate": "reset_token_hash IS NOT NULL"
+      }
+    ],
+    "columns": [
+      {
+        "column": "user_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "primarykey": true
+      },
+      {
+        "column": "username",
+        "type": {
+          "default": "VARCHAR(500)"
+        },
+        "unique": true
+      },
+      {
+        "column": "email",
+        "type": {
+          "default": "VARCHAR(500)"
+        },
+        "unique": true,
+        "notnull": true
+      },
+      {
+        "column": "password_hash",
+        "type": {
+          "default": "VARCHAR(500)"
+        }
+      },
+      {
+        "column": "reset_token_hash",
+        "type": {
+          "default": "BINARY(40)",
+          "postgres": "BYTEA"
+        }
+      },
+      {
+        "column": "failed_login_attempts",
+        "type": {
+          "default": "INT"
+        }
+      },
+      {
+        "column": "timezone_offset_seconds",
+        "type": {
+          "default": "INT"
+        }
+      },
+      {
+        "column": "disable_reason",
+        "type": {
+          "default": "VARCHAR(500)"
+        }
+      },
+      {
+        "column": "site_limit",
+        "type": {
+          "default": "BIGINT"
+        }
+      },
+      {
+        "column": "storage_limit",
+        "type": {
+          "default": "BIGINT"
+        }
+      }
+    ]
+  },
+  {
+    "table": "ip_login",
+    "columns": [
+      {
+        "column": "ip",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "BYTEA"
+        },
+        "primarykey": true
+      },
+      {
+        "column": "failed_login_attempts",
+        "type": {
+          "default": "INT"
+        }
+      }
+    ]
+  },
+  {
+    "table": "site_owner",
+    "columns": [
+      {
+        "column": "site_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "primarykey": true,
+        "references": {
+          "table": "site",
+          "column": "site_id"
+        }
+      },
+      {
+        "column": "user_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "index": true,
+        "references": {
+          "table": "users",
+          "column": "user_id"
+        }
+      }
+    ]
+  },
+  {
+    "table": "site_user",
+    "primarykey": [
+      "site_id",
+      "user_id"
+    ],
+    "columns": [
+      {
+        "column": "site_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "references": {
+          "table": "site",
+          "column": "site_id"
+        }
+      },
+      {
+        "column": "user_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "index": true,
+        "references": {
+          "table": "users",
+          "column": "user_id"
+        }
+      }
+    ]
+  },
+  {
+    "table": "flash",
+    "columns": [
+      {
+        "column": "flash_token_hash",
+        "type": {
+          "default": "BINARY(40)",
+          "postgres": "BYTEA"
+        },
+        "primarykey": true
+      },
+      {
+        "column": "data",
+        "type": {
+          "default": "JSON",
+          "postgres": "JSONB"
+        }
+      }
+    ]
+  },
+  {
+    "table": "session",
+    "columns": [
+      {
+        "column": "session_token_hash",
+        "type": {
+          "default": "BINARY(40)",
+          "postgres": "BYTEA"
+        },
+        "primarykey": true
+      },
+      {
+        "column": "user_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "index": true,
+        "references": {
+          "table": "users",
+          "column": "user_id"
+        }
+      },
+      {
+        "column": "label",
+        "type": {
+          "default": "VARCHAR(500)"
+        }
+      }
+    ]
+  },
+  {
+    "table": "invite",
+    "columns": [
+      {
+        "column": "invite_token_hash",
+        "type": {
+          "default": "BINARY(40)",
+          "postgres": "BYTEA"
+        },
+        "primarykey": true
+      },
+      {
+        "column": "email",
+        "type": {
+          "default": "VARCHAR(500)"
+        },
+        "index": true
+      },
+      {
+        "column": "site_limit",
+        "type": {
+          "default": "BIGINT"
+        }
+      },
+      {
+        "column": "storage_limit",
+        "type": {
+          "default": "BIGINT"
+        }
+      }
+    ]
+  },
+  {
+    "table": "import_job",
+    "indexes": [
+      {
+        "unique": true,
+        "columns": [
+          "site_id"
+        ]
+      }
+    ],
+    "columns": [
+      {
+        "column": "import_job_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "primarykey": true
+      },
+      {
+        "column": "site_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "notnull": true,
+        "references": {
+          "table": "site",
+          "column": "site_id"
+        }
+      },
+      {
+        "column": "tgz_file_name",
+        "type": {
+          "default": "VARCHAR(500)"
+        },
+        "notnull": true
+      },
+      {
+        "column": "start_time",
+        "type": {
+          "default": "DATETIME",
+          "postgres": "TIMESTAMPTZ"
+        }
+      },
+      {
+        "column": "total_bytes",
+        "type": {
+          "default": "BIGINT"
+        },
+        "notnull": true
+      },
+      {
+        "column": "processed_bytes",
+        "type": {
+          "default": "BIGINT"
+        }
+      }
+    ]
+  },
+  {
+    "table": "export_job",
+    "indexes": [
+      {
+        "unique": true,
+        "columns": [
+          "site_id"
+        ]
+      }
+    ],
+    "columns": [
+      {
+        "column": "export_job_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "primarykey": true
+      },
+      {
+        "column": "site_id",
+        "type": {
+          "default": "BINARY(16)",
+          "postgres": "UUID"
+        },
+        "notnull": true,
+        "references": {
+          "table": "site",
+          "column": "site_id"
+        }
+      },
+      {
+        "column": "tgz_file_name",
+        "type": {
+          "default": "VARCHAR(500)"
+        },
+        "notnull": true
+      },
+      {
+        "column": "start_time",
+        "type": {
+          "default": "DATETIME",
+          "postgres": "TIMESTAMPTZ"
+        }
+      },
+      {
+        "column": "total_bytes",
+        "type": {
+          "default": "BIGINT"
+        },
+        "notnull": true
+      },
+      {
+        "column": "processed_bytes",
+        "type": {
+          "default": "BIGINT"
+        }
+      }
+    ]
+  }
+]

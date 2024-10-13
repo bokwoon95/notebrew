@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>Delete site</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if eq $.Error "SiteNameNotProvided" "InvalidSiteName" "SiteNotFound" }}
+<div>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <h3 class='mv3 b'>No site to delete</h3>
+</div>
+{{- else if eq $.Error "NotAuthorized" }}
+<div>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <div class='mv3 b'>Not authorized</div>
+</div>
+{{- else }}
+<form method='post' data-prevent-double-submit>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- end }}
+  <h3 class='mv3 b'>Are you sure you wish to delete the site <a href='/files/{{ if contains $.SiteName "." }}$.SiteName{{ else }}@{{ $.SiteName }}{{ end }}/'>{{ $.SiteName }}</a>?</h3>
+  <div>This action is permanent and cannot be undone. All files within the site will be deleted.</div>
+  <div><label for='confirmSiteName'>Please confirm the site name that you wish to delete (<span class='b'>{{ $.SiteName }}</span>):</label></div>
+  <div><input id='confirmSiteName' name='confirmSiteName' value='{{ $.ConfirmSiteName }}' class='pv1 ph2 br2 ba w-100{{ if index $.FormErrors "confirmSiteName" }} b--invalid-red{{ end }}' autofocus required></div>
+  <ul class='list-style-disc ph3 f6 invalid-red'>
+    {{- range $error := index $.FormErrors "confirmSiteName" }}
+    <li>{{ $error }}</li>
+    {{- end }}
+  </ul>
+  <input type='hidden' name='siteName' value='{{ $.SiteName }}'>
+  <button type='submit' class='button-danger ba br2 b--dark-red pa2 mv3 w-100'>Delete site ({{ $.SiteName }})</button>
+</form>
+{{- end }}

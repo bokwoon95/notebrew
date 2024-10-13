@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module'>{{ baselineJS }}</script>
+<title>create session{{ if $.Username }} - {{ $.Username }}{{ end }}</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if $.SessionToken }}
+<div><a href='/users/profile/'>&larr; back</a></div>
+<h2 class='mv3 b'>Created session token</h2>
+<div class='mv3'>This session token will be shown in full to you only once, so copy it down somewhere safe.</div>
+<div class='mv3 b'>{{ $.SessionToken }}</div>
+<div class='mv3'>Label: {{ $.Label }}</div>
+{{- else }}
+<form method='post' data-prevent-double-submit>
+  {{- if referer }}
+  <div><a href='{{ referer }}' data-go-back>&larr; back</a></div>
+  {{- else }}
+  <div><a href='/users/profile/'>&larr; back</a></div>
+  {{- end }}
+  <h2 class='mv3 b'>Create a new session token?</h2>
+  <div>This will create a new session token which can be used for API requests. <a href='https://notebrew.com/documentation/api-documentation/'>API documentation here</a>.</div>
+  <div class='mv3'>
+    <div><label for='label' class='b'>Label (optional, used to identify your session token):</label></div>
+    <input id='label' name='label' class='pv1 ph2 br2 ba w-100'>
+  </div>
+  <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>create session token</button>
+</form>
+{{- end }}
