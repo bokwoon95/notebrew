@@ -285,7 +285,8 @@ func (nbrew *Notebrew) importt(w http.ResponseWriter, r *http.Request, user User
 				gracePeriodCtx, gracePeriodCancel := context.WithCancel(context.Background())
 				defer gracePeriodCancel()
 				go func() {
-					timer := time.NewTimer(-1)
+					timer := time.NewTimer(0)
+					<-timer.C
 					defer timer.Stop()
 					for {
 						select {

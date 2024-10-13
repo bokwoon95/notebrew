@@ -191,7 +191,8 @@ func (mailer *Mailer) NewClient() (*smtp.Client, error) {
 // sending emails that come through.
 func (mailer *Mailer) start() {
 	defer close(mailer.stopped)
-	timer := time.NewTimer(-1)
+	timer := time.NewTimer(0)
+	<-timer.C
 	defer timer.Stop()
 	var buf bytes.Buffer
 	for {
