@@ -342,15 +342,15 @@
   </div>
   {{- if and (eq (head $.FilePath) "pages") (eq (ext $.FilePath) ".html") }}
   <div class='mt2'>
-    <a href=''>the essential guide to writing HTML pages in Notebrew</a>
+    <a href='https://notebrew.com/documentation/the-essential-guide-to-writing-html-pages-in-notebrew/'>The Essential Guide to Writing HTML Pages in Notebrew</a>
   </div>
   {{- else if and (eq (head $.FilePath) "posts") (eq (ext $.FilePath) ".md") }}
   <div class='mt2'>
-    <a href=''>how do I insert links? how do I make text bold?</a>
+    <a href='https://notebrew.com/documentation/markdown-reference/'>Markdown Reference</a>
   </div>
   {{- else if and (eq (head $.FilePath) "output") (eq (head (tail $.FilePath)) "themes") (eq (ext $.FilePath) ".html") }}
   <div class='mt2'>
-    <a href=''>the essential guide to writing HTML pages in Notebrew</a>
+    <a href='https://notebrew.com/documentation/the-essential-guide-to-writing-html-pages-in-notebrew/'>The Essential Guide to Writing HTML Pages in Notebrew</a>
   </div>
   {{- end }}
   {{- if or
