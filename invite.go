@@ -454,8 +454,8 @@ func (nbrew *Notebrew) invite(w http.ResponseWriter, r *http.Request, user User)
 		}
 		_, err = sq.Exec(r.Context(), tx, sq.Query{
 			Dialect: nbrew.Dialect,
-			Format: "INSERT INTO users (user_id, username, email, password_hash, timezone_offset_seconds, site_limit, storage_limit)" +
-				" VALUES ({userID}, {username}, {email}, {passwordHash}, {timezoneOffsetSeconds}, {siteLimit}, {storageLimit})",
+			Format: "INSERT INTO users (user_id, username, email, password_hash, timezone_offset_seconds, site_limit, storage_limit, user_flags)" +
+				" VALUES ({userID}, {username}, {email}, {passwordHash}, {timezoneOffsetSeconds}, {siteLimit}, {storageLimit}, {userFlags})",
 			Values: []any{
 				sq.UUIDParam("userID", NewID()),
 				sq.StringParam("username", response.Username),
@@ -464,6 +464,7 @@ func (nbrew *Notebrew) invite(w http.ResponseWriter, r *http.Request, user User)
 				sq.IntParam("timezoneOffsetSeconds", response.TimezoneOffsetSeconds),
 				sq.Param("siteLimit", result.SiteLimit),
 				sq.Param("storageLimit", result.StorageLimit),
+				sq.Param("userFlags", result.UserFlags),
 			},
 		})
 		if err != nil {
