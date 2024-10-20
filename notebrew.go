@@ -44,6 +44,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -180,6 +181,9 @@ type Notebrew struct {
 	// CertStorage is the magic (certmagic) that automatically provisions SSL
 	// certificates for notebrew.
 	CertStorage certmagic.Storage
+
+	// CertLogger is the logger used for a certmagic.Config.
+	CertLogger *zap.Logger
 
 	// ContentSecurityPolicy is the Content-Security-Policy HTTP header set for
 	// every HTML response served on the CMS domain.

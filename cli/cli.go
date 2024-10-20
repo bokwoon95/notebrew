@@ -41,6 +41,7 @@ import (
 	"github.com/libdns/namecheap"
 	"github.com/libdns/porkbun"
 	"github.com/oschwald/maxminddb-golang"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 	"golang.org/x/sync/errgroup"
@@ -329,6 +330,18 @@ func Notebrew(configDir, dataDir string, csp map[string]string) (*notebrew.Noteb
 	}
 	nbrew.CertStorage = &certmagic.FileStorage{
 		Path: certmagicDir,
+	}
+
+	// Certmagic NopLogger.
+	b, err = os.ReadFile(filepath.Join(configDir, "certmagic-noplogger.txt"))
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, closers, fmt.Errorf("%s: %w", filepath.Join(configDir, "certmagic-noplogger.txt"), err)
+	}
+	ok, _ := strconv.ParseBool(string(bytes.TrimSpace(b)))
+	if ok {
+		nbrew.CertLogger = zap.NewNop()
+	} else {
+		nbrew.CertLogger = certmagic.DefaultACME.Logger
 	}
 
 	if nbrew.Port == 443 || nbrew.Port == 80 {
@@ -1430,7 +1443,7 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 				certmagic.NewACMEIssuer(staticCertConfig, certmagic.ACMEIssuer{
 					CA:        certmagic.DefaultACME.CA,
 					TestCA:    certmagic.DefaultACME.TestCA,
-					Logger:    certmagic.DefaultACME.Logger,
+					Logger:    nbrew.CertLogger,
 					HTTPProxy: certmagic.DefaultACME.HTTPProxy,
 					DNS01Solver: &certmagic.DNS01Solver{
 						DNSManager: certmagic.DNSManager{
@@ -1444,7 +1457,7 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 				certmagic.NewACMEIssuer(staticCertConfig, certmagic.ACMEIssuer{
 					CA:        certmagic.DefaultACME.CA,
 					TestCA:    certmagic.DefaultACME.TestCA,
-					Logger:    certmagic.DefaultACME.Logger,
+					Logger:    nbrew.CertLogger,
 					HTTPProxy: certmagic.DefaultACME.HTTPProxy,
 				}),
 			}
