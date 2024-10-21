@@ -340,8 +340,10 @@ func Notebrew(configDir, dataDir string, csp map[string]string) (*notebrew.Noteb
 	ok, _ := strconv.ParseBool(string(bytes.TrimSpace(b)))
 	if ok {
 		nbrew.CertLogger = zap.NewNop()
+		certmagic.Default.Logger = nbrew.CertLogger
 	} else {
 		nbrew.CertLogger = certmagic.DefaultACME.Logger
+		certmagic.Default.Logger = nbrew.CertLogger
 	}
 
 	if nbrew.Port == 443 || nbrew.Port == 80 {
