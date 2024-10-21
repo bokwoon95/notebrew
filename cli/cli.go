@@ -1438,13 +1438,13 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 		server.IdleTimeout = 5 * time.Minute
 		staticCertConfig := certmagic.NewDefault()
 		staticCertConfig.Storage = nbrew.CertStorage
-		staticCertConfig.Logger = nbrew.CertLogger
+		staticCertConfig.Logger = zap.NewNop()
 		if nbrew.DNSProvider != nil {
 			staticCertConfig.Issuers = []certmagic.Issuer{
 				certmagic.NewACMEIssuer(staticCertConfig, certmagic.ACMEIssuer{
 					CA:        certmagic.DefaultACME.CA,
 					TestCA:    certmagic.DefaultACME.TestCA,
-					Logger:    nbrew.CertLogger,
+					Logger:    zap.NewNop(),
 					HTTPProxy: certmagic.DefaultACME.HTTPProxy,
 					DNS01Solver: &certmagic.DNS01Solver{
 						DNSManager: certmagic.DNSManager{
@@ -1458,7 +1458,7 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 				certmagic.NewACMEIssuer(staticCertConfig, certmagic.ACMEIssuer{
 					CA:        certmagic.DefaultACME.CA,
 					TestCA:    certmagic.DefaultACME.TestCA,
-					Logger:    nbrew.CertLogger,
+					Logger:    zap.NewNop(),
 					HTTPProxy: certmagic.DefaultACME.HTTPProxy,
 				}),
 			}
@@ -1472,7 +1472,7 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 		}
 		dynamicCertConfig := certmagic.NewDefault()
 		dynamicCertConfig.Storage = nbrew.CertStorage
-		dynamicCertConfig.Logger = nbrew.CertLogger
+		dynamicCertConfig.Logger = zap.NewNop()
 		dynamicCertConfig.OnDemand = &certmagic.OnDemandConfig{
 			DecisionFunc: func(ctx context.Context, name string) error {
 				if nbrew.DB != nil {
