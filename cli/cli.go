@@ -42,6 +42,7 @@ import (
 	"github.com/libdns/porkbun"
 	"github.com/oschwald/maxminddb-golang"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 	"golang.org/x/sync/errgroup"
@@ -339,11 +340,16 @@ func Notebrew(configDir, dataDir string, csp map[string]string) (*notebrew.Noteb
 	}
 	ok, _ := strconv.ParseBool(string(bytes.TrimSpace(b)))
 	if ok {
-		nbrew.CertLogger = zap.NewNop()
-		certmagic.Default.Logger = nbrew.CertLogger
+		errorLogger := zap.New(zapcore.NewCore(
+			zapcore.NewConsoleEncoder(zap.NewProductionEncoderConfig()),
+			os.Stderr,
+			zap.ErrorLevel,
+		))
+		nbrew.CertLogger = errorLogger
+		certmagic.Default.Logger = errorLogger
+		certmagic.DefaultACME.Logger = errorLogger
 	} else {
-		nbrew.CertLogger = certmagic.DefaultACME.Logger
-		certmagic.Default.Logger = nbrew.CertLogger
+		nbrew.CertLogger = certmagic.Default.Logger
 	}
 
 	if nbrew.Port == 443 || nbrew.Port == 80 {
@@ -1440,17 +1446,18 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 		server.IdleTimeout = 5 * time.Minute
 		staticCertConfig := certmagic.NewDefault()
 		staticCertConfig.Storage = nbrew.CertStorage
-		staticCertConfig.Logger = zap.NewNop()
+		staticCertConfig.Logger = nbrew.CertLogger
 		if nbrew.DNSProvider != nil {
 			staticCertConfig.Issuers = []certmagic.Issuer{
 				certmagic.NewACMEIssuer(staticCertConfig, certmagic.ACMEIssuer{
 					CA:        certmagic.DefaultACME.CA,
 					TestCA:    certmagic.DefaultACME.TestCA,
-					Logger:    zap.NewNop(),
+					Logger:    nbrew.CertLogger,
 					HTTPProxy: certmagic.DefaultACME.HTTPProxy,
 					DNS01Solver: &certmagic.DNS01Solver{
 						DNSManager: certmagic.DNSManager{
 							DNSProvider: nbrew.DNSProvider,
+							Logger:      nbrew.CertLogger,
 						},
 					},
 				}),
@@ -1460,7 +1467,7 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 				certmagic.NewACMEIssuer(staticCertConfig, certmagic.ACMEIssuer{
 					CA:        certmagic.DefaultACME.CA,
 					TestCA:    certmagic.DefaultACME.TestCA,
-					Logger:    zap.NewNop(),
+					Logger:    nbrew.CertLogger,
 					HTTPProxy: certmagic.DefaultACME.HTTPProxy,
 				}),
 			}
@@ -1474,7 +1481,7 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 		}
 		dynamicCertConfig := certmagic.NewDefault()
 		dynamicCertConfig.Storage = nbrew.CertStorage
-		dynamicCertConfig.Logger = zap.NewNop()
+		dynamicCertConfig.Logger = nbrew.CertLogger
 		dynamicCertConfig.OnDemand = &certmagic.OnDemandConfig{
 			DecisionFunc: func(ctx context.Context, name string) error {
 				if nbrew.DB != nil {
