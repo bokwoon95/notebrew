@@ -77,3 +77,4 @@ gui/main.go
 
 TODO: change sq to use Go 1.23's range over iterator funcs (we will need to drastically change the error handling of all code that uses a cursor).
 TODO: add database test scaffolding (you don't need to write all tests for all handlers yet, but you need to establish what a test scaffolding that goes through all database dialects would look like).
+TODO: add ability to showcase blogs on the site? add ability to showcase posts and vote on posts?
