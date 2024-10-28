@@ -447,6 +447,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			fileType, ok := AllowedFileTypes[path.Ext(urlPath)]
 			if !ok || !fileType.Has(AttributeObject) || fileType.Ext == ".tgz" {
 				http.Error(w, "404 Not Found", http.StatusNotFound)
+				return
 			}
 			reader, err := databaseFS.ObjectStorage.Get(r.Context(), urlPath)
 			if err != nil {
