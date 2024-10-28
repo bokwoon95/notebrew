@@ -1583,7 +1583,9 @@ type LogFilter struct {
 }
 
 func (logFilter *LogFilter) Write(p []byte) (n int, err error) {
-	if bytes.Contains(p, []byte("http: TLS handshake error from ")) {
+	if bytes.Contains(p, []byte("http: TLS handshake error from ")) ||
+		bytes.Contains(p, []byte("http2: RECEIVED GOAWAY")) ||
+		bytes.Contains(p, []byte("http2: server: error reading preface from client")) {
 		return 0, nil
 	}
 	return logFilter.Stderr.Write(p)
