@@ -592,7 +592,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 						b.WriteString("\n<span class='mh1'>&boxv;</span>")
 					}
 					href := "/files/" + path.Join(segments[:i+1]...) + "/"
-					b.WriteString(" / <a href='" + template.HTMLEscapeString(href) + "'>" + template.HTMLEscapeString(segments[i]) + "</a>")
+					b.WriteString("<a href='" + template.HTMLEscapeString(href) + "'>" + template.HTMLEscapeString(segments[i]) + "</a>")
 				}
 				return template.HTML(b.String())
 			},
