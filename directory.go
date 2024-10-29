@@ -152,7 +152,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 						continue
 					}
 					href := "/files/" + path.Join(segments[:i+1]...) + "/"
-					b.WriteString(" / <a href='" + href + "'>" + segments[i] + "</a>")
+					b.WriteString(" / <a href='" + template.HTMLEscapeString(href) + "'>" + template.HTMLEscapeString(segments[i]) + "</a>")
 				}
 				b.WriteString(" /")
 				return template.HTML(b.String())
