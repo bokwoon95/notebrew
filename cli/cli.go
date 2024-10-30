@@ -333,23 +333,34 @@ func Notebrew(configDir, dataDir string, csp map[string]string) (*notebrew.Noteb
 		Path: certmagicDir,
 	}
 
-	// Certmagic NopLogger.
-	b, err = os.ReadFile(filepath.Join(configDir, "certmagic-noplogger.txt"))
+	// Certmagic Terse Logger.
+	b, err = os.ReadFile(filepath.Join(configDir, "certmagic-terse-logger.txt"))
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, closers, fmt.Errorf("%s: %w", filepath.Join(configDir, "certmagic-noplogger.txt"), err)
+		return nil, closers, fmt.Errorf("%s: %w", filepath.Join(configDir, "certmagic-terse-logger.txt"), err)
 	}
 	ok, _ := strconv.ParseBool(string(bytes.TrimSpace(b)))
 	if ok {
-		errorLogger := zap.New(zapcore.NewCore(
-			zapcore.NewConsoleEncoder(zap.NewProductionEncoderConfig()),
+		encoderConfig := zap.NewProductionEncoderConfig()
+		encoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+		terseLogger := zap.New(zapcore.NewCore(
+			zapcore.NewConsoleEncoder(encoderConfig),
 			os.Stderr,
 			zap.ErrorLevel,
 		))
-		nbrew.CertLogger = errorLogger
-		certmagic.Default.Logger = errorLogger
-		certmagic.DefaultACME.Logger = errorLogger
+		nbrew.CertLogger = terseLogger
+		certmagic.Default.Logger = terseLogger
+		certmagic.DefaultACME.Logger = terseLogger
 	} else {
-		nbrew.CertLogger = certmagic.Default.Logger
+		encoderConfig := zap.NewProductionEncoderConfig()
+		encoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+		verboseLogger := zap.New(zapcore.NewCore(
+			zapcore.NewConsoleEncoder(encoderConfig),
+			os.Stderr,
+			zap.InfoLevel,
+		))
+		nbrew.CertLogger = verboseLogger
+		certmagic.Default.Logger = verboseLogger
+		certmagic.DefaultACME.Logger = verboseLogger
 	}
 
 	if nbrew.Port == 443 || nbrew.Port == 80 {
