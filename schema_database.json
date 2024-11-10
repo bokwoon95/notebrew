@@ -102,6 +102,13 @@
         "type": {
           "default": "BIGINT"
         }
+      },
+      {
+        "column": "user_flags",
+        "type": {
+          "default": "JSON",
+          "postgres": "JSONB"
+        }
       }
     ]
   },
