@@ -655,7 +655,9 @@ func (nbrew *Notebrew) ContentBaseURL(sitePrefix string) string {
 
 // GetReferer is like (*http.Request).Referer() except it returns an empty
 // string if the referer is the same as the current page's URL so that the user
-// doesn't keep pressing back to the same page.
+// doesn't keep pressing back to the same page. It also returns an empty string
+// if the referer's hostname is different from the CMSDomain, ensuring that it
+// only works for URLs on the CMSDomain.
 func (nbrew *Notebrew) GetReferer(r *http.Request) string {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer
 	//
@@ -664,6 +666,9 @@ func (nbrew *Notebrew) GetReferer(r *http.Request) string {
 	// information."
 	referer := r.Referer()
 	uri := *r.URL
+	if uri.Hostname() != nbrew.CMSDomain {
+		return ""
+	}
 	if r.TLS == nil {
 		uri.Scheme = "http"
 	} else {
