@@ -155,6 +155,8 @@ func NewMailer(config MailerConfig) (*Mailer, error) {
 
 // NewClient returns a new SMTP client.
 func (mailer *Mailer) NewClient() (*smtp.Client, error) {
+	var err error
+	var client *smtp.Client
 	if mailer.Port == "465" {
 		conn, err := tls.Dial("tcp", mailer.Host+":"+mailer.Port, &tls.Config{
 			ServerName: mailer.Host,
@@ -162,22 +164,22 @@ func (mailer *Mailer) NewClient() (*smtp.Client, error) {
 		if err != nil {
 			return nil, stacktrace.New(err)
 		}
-		client, err := smtp.NewClient(conn, mailer.Host)
+		client, err = smtp.NewClient(conn, mailer.Host)
 		if err != nil {
 			return nil, stacktrace.New(err)
 		}
-		return client, nil
-	}
-	client, err := smtp.Dial(mailer.Host + ":" + mailer.Port)
-	if err != nil {
-		return nil, stacktrace.New(err)
-	}
-	if mailer.Port == "587" {
-		err := client.StartTLS(&tls.Config{
-			ServerName: mailer.Host,
-		})
+	} else {
+		client, err = smtp.Dial(mailer.Host + ":" + mailer.Port)
 		if err != nil {
 			return nil, stacktrace.New(err)
+		}
+		if mailer.Port == "587" {
+			err := client.StartTLS(&tls.Config{
+				ServerName: mailer.Host,
+			})
+			if err != nil {
+				return nil, stacktrace.New(err)
+			}
 		}
 	}
 	err = client.Auth(smtp.PlainAuth("", mailer.Username, mailer.Password, mailer.Host))
