@@ -1482,6 +1482,11 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 			errmsg := fmt.Sprint(data["error"])
 			nbrew.BaseCtxWaitGroup.Add(1)
 			go func() {
+				defer func() {
+					if v := recover(); v != nil {
+						fmt.Println(stacktrace.New(fmt.Errorf("panic: %v", v)))
+					}
+				}()
 				defer nbrew.BaseCtxWaitGroup.Done()
 				mail := notebrew.Mail{
 					MailFrom: nbrew.MailFrom,

@@ -1061,6 +1061,43 @@ func (nbrew *Notebrew) InternalServerError(w http.ResponseWriter, r *http.Reques
 			callers = append(callers, frame.File+":"+strconv.Itoa(frame.Line))
 		}
 	}
+	isDeadlineExceeded := errors.Is(serverErr, context.DeadlineExceeded)
+	isCanceled := errors.Is(serverErr, context.Canceled)
+	if nbrew.ErrorlogConfig.Email != "" && nbrew.Mailer != nil && !isDeadlineExceeded && !isCanceled {
+		nbrew.BaseCtxWaitGroup.Add(1)
+		go func() {
+			defer func() {
+				if v := recover(); v != nil {
+					fmt.Println(stacktrace.New(fmt.Errorf("panic: %v", v)))
+				}
+			}()
+			defer nbrew.BaseCtxWaitGroup.Done()
+			var b strings.Builder
+			b.WriteString(nbrew.CMSDomain + ": internal server error")
+			b.WriteString("\r\n")
+			b.WriteString("\r\n" + errmsg)
+			b.WriteString("\r\n")
+			b.WriteString("\r\nstack trace:")
+			for _, caller := range callers {
+				b.WriteString("\r\n" + caller)
+			}
+			b.WriteString("\r\n")
+			b.WriteString("\r\ngit commit: " + Version)
+			mail := Mail{
+				MailFrom: nbrew.MailFrom,
+				RcptTo:   nbrew.ErrorlogConfig.Email,
+				Headers: []string{
+					"Subject", "notebrew: " + nbrew.CMSDomain + ": internal server error: " + errmsg,
+					"Content-Type", "text/plain; charset=utf-8",
+				},
+				Body: strings.NewReader(b.String()),
+			}
+			select {
+			case <-nbrew.BaseCtx.Done():
+			case nbrew.Mailer.C <- mail:
+			}
+		}()
+	}
 	if r.Form.Has("api") {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1089,7 +1126,7 @@ func (nbrew *Notebrew) InternalServerError(w http.ResponseWriter, r *http.Reques
 		}
 	}()
 	var data map[string]any
-	if errors.Is(serverErr, context.DeadlineExceeded) {
+	if isDeadlineExceeded {
 		data = map[string]any{
 			"Referer":  nbrew.GetReferer(r),
 			"Title":    "deadline exceeded",
