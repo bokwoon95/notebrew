@@ -687,7 +687,7 @@ func (nbrew *Notebrew) export(w http.ResponseWriter, r *http.Request, user User,
 				nbrew.InternalServerError(w, r, err)
 				return
 			}
-			nbrew.baseCtxWaitGroup.Add(1)
+			nbrew.BaseCtxWaitGroup.Add(1)
 			logger := nbrew.GetLogger(r.Context())
 			requestURL := r.Method + " " + r.Host + r.URL.RequestURI()
 			go func() {
@@ -696,8 +696,8 @@ func (nbrew *Notebrew) export(w http.ResponseWriter, r *http.Request, user User,
 						fmt.Println(stacktrace.New(fmt.Errorf("panic: %s: %v", requestURL, v)))
 					}
 				}()
-				defer nbrew.baseCtxWaitGroup.Done()
-				err := nbrew.exportTgz(nbrew.baseCtx, exportJobID, sitePrefix, filePaths, outputDirsToExport, tgzFileName, storageRemaining)
+				defer nbrew.BaseCtxWaitGroup.Done()
+				err := nbrew.exportTgz(nbrew.BaseCtx, exportJobID, sitePrefix, filePaths, outputDirsToExport, tgzFileName, storageRemaining)
 				if err != nil {
 					logger.Error(err.Error(),
 						slog.String("exportJobID", exportJobID.String()),

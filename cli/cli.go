@@ -1381,6 +1381,23 @@ func Notebrew(configDir, dataDir string, csp map[string]string) (*notebrew.Noteb
 		}
 	}
 
+	// Errorlog.
+	b, err = os.ReadFile(filepath.Join(configDir, "errorlog.json"))
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, closers, fmt.Errorf("%s: %w", filepath.Join(configDir, "errorlog.json"), err)
+	}
+	b = bytes.TrimSpace(b)
+	if len(b) > 0 {
+		var errorlogConfig ErrorlogConfig
+		decoder := json.NewDecoder(bytes.NewReader(b))
+		decoder.DisallowUnknownFields()
+		err := decoder.Decode(&errorlogConfig)
+		if err != nil {
+			return nil, closers, fmt.Errorf("%s: %w", filepath.Join(configDir, "errorlog.json"), err)
+		}
+		nbrew.ErrorlogConfig.Email = errorlogConfig.Email
+	}
+
 	// Content Security Policy.
 	var buf strings.Builder
 	// default-src
@@ -1449,6 +1466,46 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 		ErrorLog: log.New(&LogFilter{Stderr: os.Stderr}, "", log.LstdFlags),
 		Handler:  nbrew,
 	}
+	var onEvent func(ctx context.Context, event string, data map[string]any) error
+	if nbrew.ErrorlogConfig.Email != "" && nbrew.Mailer != nil {
+		onEvent = func(ctx context.Context, event string, data map[string]any) error {
+			if event != "cert_failed" {
+				return nil
+			}
+			isRenewal, _ := data["renewal"].(bool)
+			if !isRenewal {
+				return nil
+			}
+			identifier := fmt.Sprint(data["identifier"])
+			remaining := fmt.Sprint(data["remaining"])
+			issuers := fmt.Sprint(data["issuers"])
+			errmsg := fmt.Sprint(data["error"])
+			nbrew.BaseCtxWaitGroup.Add(1)
+			go func() {
+				defer nbrew.BaseCtxWaitGroup.Done()
+				mail := notebrew.Mail{
+					MailFrom: nbrew.MailFrom,
+					RcptTo:   nbrew.ErrorlogConfig.Email,
+					Headers: []string{
+						"Subject", "notebrew: certificate renewal for " + identifier + " failed: " + errmsg,
+						"Content-Type", "text/plain; charset=utf-8",
+					},
+					Body: strings.NewReader("Certificate renewal failed." +
+						"\r\nThe name on the certificate: " + identifier +
+						"\r\nThe issuer(s) tried: " + issuers +
+						"\r\nTime left on the certificate: " + remaining +
+						"\r\nError: " + errmsg,
+					),
+				}
+				select {
+				case <-ctx.Done():
+				case <-nbrew.BaseCtx.Done():
+				case nbrew.Mailer.C <- mail:
+				}
+			}()
+			return nil
+		}
+	}
 	switch nbrew.Port {
 	case 443:
 		server.Addr = ":443"
@@ -1456,6 +1513,7 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 		server.WriteTimeout = 60 * time.Minute
 		server.IdleTimeout = 5 * time.Minute
 		staticCertConfig := certmagic.NewDefault()
+		staticCertConfig.OnEvent = onEvent
 		staticCertConfig.Storage = nbrew.CertStorage
 		staticCertConfig.Logger = nbrew.CertLogger
 		if nbrew.DNSProvider != nil {
@@ -1491,6 +1549,7 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 			return nil, err
 		}
 		dynamicCertConfig := certmagic.NewDefault()
+		dynamicCertConfig.OnEvent = onEvent
 		dynamicCertConfig.Storage = nbrew.CertStorage
 		dynamicCertConfig.Logger = nbrew.CertLogger
 		dynamicCertConfig.OnDemand = &certmagic.OnDemandConfig{

@@ -273,7 +273,7 @@ func (nbrew *Notebrew) importt(w http.ResponseWriter, r *http.Request, user User
 				nbrew.InternalServerError(w, r, err)
 				return
 			}
-			nbrew.baseCtxWaitGroup.Add(1)
+			nbrew.BaseCtxWaitGroup.Add(1)
 			logger := nbrew.GetLogger(r.Context())
 			go func() {
 				defer func() {
@@ -281,7 +281,7 @@ func (nbrew *Notebrew) importt(w http.ResponseWriter, r *http.Request, user User
 						fmt.Println(stacktrace.New(fmt.Errorf("panic: %v", v)))
 					}
 				}()
-				defer nbrew.baseCtxWaitGroup.Done()
+				defer nbrew.BaseCtxWaitGroup.Done()
 				gracePeriodCtx, gracePeriodCancel := context.WithCancel(context.Background())
 				defer gracePeriodCancel()
 				go func() {
@@ -290,7 +290,7 @@ func (nbrew *Notebrew) importt(w http.ResponseWriter, r *http.Request, user User
 					defer timer.Stop()
 					for {
 						select {
-						case <-nbrew.baseCtx.Done():
+						case <-nbrew.BaseCtx.Done():
 							timer.Reset(time.Hour)
 						case <-timer.C:
 							gracePeriodCancel()
@@ -366,7 +366,7 @@ func (nbrew *Notebrew) importTgz(ctx context.Context, importJobID ID, sitePrefix
 			nbrew.Logger.Error(err.Error())
 		}
 	}()
-	file, err := nbrew.FS.WithContext(nbrew.baseCtx).Open(path.Join(sitePrefix, "imports", tgzFileName))
+	file, err := nbrew.FS.WithContext(nbrew.BaseCtx).Open(path.Join(sitePrefix, "imports", tgzFileName))
 	if err != nil {
 		return stacktrace.New(err)
 	}

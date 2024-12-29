@@ -197,16 +197,22 @@ type Notebrew struct {
 	// addresses to their countries using a maxmind GeoIP database.
 	MaxMindDBReader *maxminddb.Reader
 
-	// baseCtx is the base context of the notebrew instance.
-	baseCtx context.Context
+	// Error Logging configuration.
+	ErrorlogConfig struct {
+		// Email address to notify for errors.
+		Email string
+	}
+
+	// BaseCtx is the base context of the notebrew instance.
+	BaseCtx context.Context
 
 	// baseCtxCancel cancels the base context.
 	baseCtxCancel func()
 
-	// baseCtxWaitGroup tracks the number of background jobs spawned by the
+	// BaseCtxWaitGroup tracks the number of background jobs spawned by the
 	// notebrew instance. Each background job should take in the base context,
 	// and should should initiate shutdown when the base context is canceled.
-	baseCtxWaitGroup sync.WaitGroup
+	BaseCtxWaitGroup sync.WaitGroup
 }
 
 // New returns a new instance of Notebrew. Each field within it still needs to
@@ -215,7 +221,7 @@ func New() *Notebrew {
 	populateExts()
 	baseCtx, baseCtxCancel := context.WithCancel(context.Background())
 	nbrew := &Notebrew{
-		baseCtx:       baseCtx,
+		BaseCtx:       baseCtx,
 		baseCtxCancel: baseCtxCancel,
 	}
 	return nbrew
@@ -225,7 +231,7 @@ func New() *Notebrew {
 // have spawned.
 func (nbrew *Notebrew) Close() error {
 	nbrew.baseCtxCancel()
-	defer nbrew.baseCtxWaitGroup.Wait()
+	defer nbrew.BaseCtxWaitGroup.Wait()
 	if nbrew.DB != nil {
 		if nbrew.Dialect == "sqlite" {
 			nbrew.DB.Exec("PRAGMA optimize")
