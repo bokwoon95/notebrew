@@ -23,6 +23,7 @@ import (
 )
 
 func (nbrew *Notebrew) resetpassword(w http.ResponseWriter, r *http.Request, user User) {
+	const resetTokenExpiryDuration = time.Hour
 	type Request struct {
 		Token           string `json:"token"`
 		Email           string `json:"email"`
@@ -293,9 +294,11 @@ func (nbrew *Notebrew) resetpassword(w http.ResponseWriter, r *http.Request, use
 					"Subject", "Notebrew password reset",
 					"Content-Type", "text/html; charset=utf-8",
 				},
-				Body: strings.NewReader(fmt.Sprintf(
-					"<p>Your notebrew password reset link: <a href='%[1]s'>%[1]s</a></p>",
+				Body: strings.NewReader(fmt.Sprintf("<p>Your notebrew password reset link: <a href='%[1]s'>%[1]s</a></p>"+
+					"<br><br>It will expire in %[2]s."+
+					"<br><br>If you did not request to reset your password, you can ignore this email.",
 					scheme+nbrew.CMSDomain+"/users/resetpassword/?token="+url.QueryEscape(strings.TrimLeft(hex.EncodeToString(resetTokenBytes[:]), "0")),
+					resetTokenExpiryDuration.String(),
 				)),
 			}
 			writeResponse(w, r, response)
@@ -313,7 +316,7 @@ func (nbrew *Notebrew) resetpassword(w http.ResponseWriter, r *http.Request, use
 			return
 		}
 		creationTime := time.Unix(int64(binary.BigEndian.Uint64(resetTokenBytes[:8])), 0).UTC()
-		if time.Now().Sub(creationTime) > 24*time.Hour {
+		if time.Now().Sub(creationTime) > resetTokenExpiryDuration {
 			response.Error = "InvalidResetToken"
 			writeResponse(w, r, response)
 			return
