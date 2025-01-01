@@ -347,6 +347,11 @@ func (nbrew *Notebrew) uploadfile(w http.ResponseWriter, r *http.Request, user U
 				if fileName == "postlist.json" || fileName == "postlist.html" || fileName == "post.html" {
 					err := writeFile(groupctx, filePath, http.MaxBytesReader(nil, part, fileType.SizeLimit))
 					if err != nil {
+						var maxBytesErr *http.MaxBytesError
+						if errors.As(err, &maxBytesErr) {
+							response.FilesTooBig = append(response.FilesTooBig, fileName)
+							continue
+						}
 						nbrew.GetLogger(r.Context()).Error(err.Error())
 						nbrew.InternalServerError(w, r, err)
 						return
