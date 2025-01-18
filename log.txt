@@ -79,6 +79,8 @@ TODO: change sq to use Go 1.23's range over iterator funcs (we will need to dras
 TODO: add database test scaffolding (you don't need to write all tests for all handlers yet, but you need to establish what a test scaffolding that goes through all database dialects would look like).
 TODO: add ability to showcase blogs on the site? add ability to showcase posts and vote on posts?
 
+mobile app: when you share a social media post (twitter threads reddit), you are given the option to create a new file or append to an existing file. when you append, a "----" is added before appending the rest of the contents.
+
 look into creating an offline-first app
 - dumb server, smart client
 - every file has a modTime and a serverModTime. The serverModTime is compared with the modTime from the server (together with the file hash) to determine if a file has gone out of sync with the server. If so, the latest copy will always take the place of the filename and the older copy will occupy the filename <filename>-YYYY-MM-DD-HHMMSS-<base32UUIDHash>.<ext>.
