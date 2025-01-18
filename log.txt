@@ -81,6 +81,8 @@ TODO: add ability to showcase blogs on the site? add ability to showcase posts a
 
 mobile app: when you share a social media post (twitter threads reddit), you are given the option to create a new file or append to an existing file. when you append, a "----" is added before appending the rest of the contents.
 
+mobile app: separate the local file handling code and the server sync code with an events system. when a file is created updated deleted copied or moved, an event is emitted and the server synchronisation code kicks in. the local file handling code never has any idea it is communicating with an external server. things just magically appear and disappear in the database.
+
 look into creating an offline-first app
 - dumb server, smart client
 - every file has a modTime and a serverModTime. The serverModTime is compared with the modTime from the server (together with the file hash) to determine if a file has gone out of sync with the server. If so, the latest copy will always take the place of the filename and the older copy will occupy the filename <filename>-YYYY-MM-DD-HHMMSS-<base32UUIDHash>.<ext>.
