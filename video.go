@@ -79,6 +79,7 @@ func (nbrew *Notebrew) video(w http.ResponseWriter, r *http.Request, user User, 
 			}
 			if contentRange, ok := values["httpcontentrange"].(string); ok && contentRange != "" {
 				w.Header().Set("Content-Type", fileType.ContentType)
+				w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(path.Base(filePath)))
 				w.Header().Set("Cache-Control", "max-age=2592000, stale-while-revalidate=31536000" /* 1 month, 1 year */)
 				w.Header().Set("Accept-Ranges", "bytes")
 				w.Header().Set("Content-Range", contentRange)
