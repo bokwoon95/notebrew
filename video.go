@@ -77,6 +77,7 @@ func (nbrew *Notebrew) video(w http.ResponseWriter, r *http.Request, user User, 
 				nbrew.NotFound(w, r)
 				return
 			}
+			// test
 			if contentRange, ok := values["httpcontentrange"].(string); ok && contentRange != "" {
 				w.Header().Set("Content-Type", fileType.ContentType)
 				w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(path.Base(filePath)))
