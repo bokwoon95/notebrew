@@ -426,10 +426,13 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 	case "posts":
 		response.UploadableExts = []string{".md"}
 	default:
-		response.UploadableExts = make([]string, 0, len(editableExts)+len(imgExts)+len(fontExts))
+		response.UploadableExts = make([]string, 0, len(editableExts)+len(imgExts)+len(videoExts)+len(fontExts))
 		response.UploadableExts = append(response.UploadableExts, editableExts...)
 		if !user.UserFlags["NoUploadImage"] {
 			response.UploadableExts = append(response.UploadableExts, imgExts...)
+		}
+		if !user.UserFlags["NoUploadVideo"] {
+			response.UploadableExts = append(response.UploadableExts, videoExts...)
 		}
 		response.UploadableExts = append(response.UploadableExts, fontExts...)
 	}

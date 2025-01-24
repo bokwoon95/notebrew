@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang='en'>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<link rel='icon' href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22><text y=%221em%22 font-size=%228%22>☕</text></svg>'>
+<style>{{ stylesCSS }}</style>
+<script type='module' src='/files/static/editor-01kcb5bw.js'></script>
+<script type='module'>{{ baselineJS }}</script>
+<title>{{ base $.FilePath }}{{ if $.SitePrefix }} - {{ $.SitePrefix }}{{ end }}</title>
+<body class='centered-body'>
+<nav class='mv2 bg-dark-cyan white flex flex-wrap items-center'>
+  <a href='/files/' class='ma2 white'>🖋️☕ notebrew</a>
+  {{- if $.SitePrefix }}
+  &bull;<a href='/{{ join "files" $.SitePrefix }}/' class='ma2 white'>{{ $.SitePrefix }}</a>
+  {{- end }}
+  &bull;<a href='{{ $.ContentBaseURL }}' class='ma2 white'>view site</a>
+  <span class='flex-grow-1'></span>
+  {{- if not $.UserID.IsZero }}
+  <a href='/users/profile/' class='ma2 white'>{{ if $.Username }}profile ({{ $.Username }}){{ else }}profile{{ end }}{{ if $.DisableReason }} (account disabled){{ end }}</a>
+  <a href='/users/logout/' class='ma2 white'>logout</a>
+  {{- end }}
+</nav>
+{{- if eq (index $.PostRedirectGet "from") "video" }}
+<div role='alert' class='alert mv2 pa2 br2 flex items-start'>
+  <div class='pv1'>saved{{ if $.RegenerationStats.Count }} (regenerated {{ $.RegenerationStats.Count }} file{{ if ne $.RegenerationStats.Count 1 }}s{{ end }} in {{ $.RegenerationStats.TimeTaken }}){{ end }}</div>
+  <div class='flex-grow-1'></div>
+  <button class='f3 bg-transparent bn o-70 hover-black' data-dismiss-alert>&times;</button>
+</div>
+{{- end }}
+<div class='mv2 flex flex-wrap'>
+  {{- if referer }}
+  <a href='{{ referer }}' data-go-back>&larr; back</a>
+  <span class='mh1'>&boxv;</span>
+  {{- else }}
+  <a href='/{{ join "files" $.SitePrefix (dir $.FilePath) }}/'>&larr; back</a>
+  <span class='mh1'>&boxv;</span>
+  {{- end }}
+  {{- if eq (head $.FilePath) "notes" }}
+  <a href='/{{ join "files" $.SitePrefix }}/'>{{ if $.SitePrefix }}{{ $.SitePrefix }}{{ else }}files{{ end }}</a>
+  <span class='mh1'>&boxv;</span>
+  <a href='/{{ join "files" $.SitePrefix "notes" }}/'>notes</a>
+    {{- if ne (dir $.FilePath) "notes" }}
+    <span class='mh1'>&boxv;</span>
+    <a href='/{{ join "files" $.SitePrefix (dir $.FilePath) }}/'>{{ base (dir $.FilePath) }}</a>
+    {{- end }}
+  {{- else if eq (head $.FilePath) "output" }}
+    {{- if $.BelongsTo }}
+    <a href='/{{ join "files" $.SitePrefix }}/'>{{ if $.SitePrefix }}{{ $.SitePrefix }}{{ else }}files{{ end }}</a>
+      {{- if eq (head (tail $.FilePath)) "posts" }}
+      <span class='mh1'>&boxv;</span>
+      view:&nbsp;<a href='{{ $.URL }}'>post</a>
+      {{- else if ne (head (tail $.FilePath)) "themes" }}
+      <span class='mh1'>&boxv;</span>
+      view:&nbsp;<a href='{{ $.URL }}'>page</a>
+      {{- end }}
+    <span class='mh1'>&boxv;</span>
+    belongs to:&nbsp;<a href='/{{ join "files" $.SitePrefix $.BelongsTo }}'>{{ base $.BelongsTo }}</a>
+    {{- else }}
+      <a href='/{{ join "files" $.SitePrefix }}/'>{{ if $.SitePrefix }}{{ $.SitePrefix }}{{ else }}files{{ end }}</a>
+      {{- if eq (head (tail $.FilePath)) "themes" }}
+      <span class='mh1'>&boxv;</span>
+      <a href='/{{ join "files" $.SitePrefix "output/themes" }}/'>themes</a>
+      {{- end }}
+      {{- if ne (dir $.FilePath) "output/themes" }}
+      <span class='mh1'>&boxv;</span>
+      <a href='/{{ join "files" $.SitePrefix (dir $.FilePath) }}/'>{{ base (dir $.FilePath) }}</a>
+      {{- end }}
+    {{- end }}
+  {{- end }}
+</div>
+<figure class='mv2 w-70-l w-80-m w-100 center'>
+  <div class='flex flex-wrap items-center break-word mv2'>
+    {{- if $.PreviousVideoName }}
+    <a href='/{{ join "files" $.SitePrefix (dir $.FilePath) $.PreviousVideoName }}'>&larr; previous</a>
+    {{- end }}
+    <span class='flex-grow-1 mh1'></span>
+    <span class='b'>{{ base $.FilePath }}</span>
+    <span class='ml2 f6 mid-gray flex items-center'>{{ humanReadableFileSize $.Size }}</span>
+    <span class='ml2 f6 mid-gray'>{{ $.CreationTime.Format "2006-01-02" }}</span>
+    <a href='/{{ join "files" $.SitePrefix (dir $.FilePath) }}?from={{ base $.FilePath }}&fromEdited={{ $.ModTime.UTC.Format "2006-01-02T150405.999999999Z" }}&fromCreated={{ $.CreationTime.UTC.Format "2006-01-02T150405.999999999Z" }}&limit=1' class='ml2 f6'>view in folder</a>
+    <a href='{{ if and $.CDNDomain $.IsDatabaseFS $.IsObject }}//{{ $.CDNDomain }}/{{ $.FileID }}{{ ext $.FilePath }}{{ else }}?raw{{ end }}' class='ml2 f6'>view raw</a>
+    <span class='flex-grow-1 mh1'></span>
+    {{- if $.NextVideoName }}
+    <a href='/{{ join "files" $.SitePrefix (dir $.FilePath) $.NextVideoName }}'>next &rarr;</a>
+    {{- end }}
+  </div>
+  {{- if and $.CDNDomain $.IsDatabaseFS }}
+  <video controls class='object-cover db center' style='max-height: 100%; max-width: 100%;'>
+    <source src='//{{ $.CDNDomain }}/{{ $.FileID }}{{ ext $.FilePath }}' type='{{ $.ContentType }}'>
+  </video>
+  {{- else }}
+  <video controls class='object-cover db center' style='max-height: 100%; max-width: 100%;'>
+    <source src='?raw' type='{{ $.ContentType }}'>
+  </video>
+  {{- end }}
+  <div class='flex flex-wrap items-center break-word mv2'>
+    {{- if $.PreviousVideoName }}
+    <a href='/{{ join "files" $.SitePrefix (dir $.FilePath) $.PreviousVideoName }}'>&larr; previous</a>
+    {{- end }}
+    <span class='flex-grow-1 mh1'></span>
+    {{- if $.NextVideoName }}
+    <a href='/{{ join "files" $.SitePrefix (dir $.FilePath) $.NextVideoName }}'>next &rarr;</a>
+    {{- end }}
+  </div>
+</figure>
+{{- if $.IsDatabaseFS }}
+<form method='post' class='mv2' data-prevent-double-submit>
+  <div class='flex flex-wrap mv2 gap-4px'>
+    <label for='content' class='b'>Caption</label>
+    <div class='flex-grow-1'></div>
+    <label for='wordwrap' class='pointer flex items-center mh2'>
+      <input id='wordwrap' type='checkbox' class='pointer'>
+      <span class='ml1'>word wrap</span>
+    </label>
+    <button type='submit' class='button ba ph3 br2 b--black pv1'>save</button>
+    {{- if eq (head $.BelongsTo) "posts" }}
+    <button type='submit' class='button ba ph3 br2 b--black pv1 ml1 bg-transparent' name='regeneratePostList' value='true'>save and regenerate post list</button>
+    {{- else if and (eq (head $.FilePath) "output") (eq (head (tail $.FilePath)) "themes") }}
+    <button type='submit' class='button ba ph3 br2 b--black pv1 ml1 bg-transparent' name='regenerateSite' value='true'>save and regenerate site</button>
+    {{- end }}
+  </div>
+  <div data-editor='{"ext":".md","wordwrapCheckboxID":"wordwrap"}'>
+    <textarea id='content' name='content' dir='auto' class='w-100 pa2 min-h5 h6 resize-vertical code'>{{ $.Content }}</textarea>
+  </div>
+  <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>save</button>
+  {{- if eq (head $.BelongsTo) "posts" }}
+  <button type='submit' class='button ba br2 b--black pa2 mv3 w-100 bg-transparent' name='regeneratePostList' value='true'>save and regenerate post list</button>
+  {{- else if and (eq (head $.FilePath) "output") (eq (head (tail $.FilePath)) "themes") }}
+  <button type='submit' class='button ba ph3 br2 b--black pv1 ml1 bg-transparent' name='regenerateSite' value='true'>save and regenerate site</button>
+  {{- end }}
+  <div role='status'></div>
+</form>
+{{- end }}

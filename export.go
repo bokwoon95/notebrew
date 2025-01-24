@@ -893,7 +893,7 @@ func (nbrew *Notebrew) exportTgz(ctx context.Context, exportJobID ID, sitePrefix
 			if !ok {
 				continue
 			}
-			if fileType.Has(AttributeImg) && len(file.Bytes) > 0 && utf8.Valid(file.Bytes) {
+			if (fileType.Has(AttributeImg) || fileType.Has(AttributeVideo)) && len(file.Bytes) > 0 && utf8.Valid(file.Bytes) {
 				tarHeader.PAXRecords["NOTEBREW.file.caption"] = string(file.Bytes)
 			}
 			tarHeader.Typeflag = tar.TypeReg
@@ -1320,7 +1320,7 @@ func exportDir(ctx context.Context, tarWriter *tar.Writer, fsys fs.FS, sitePrefi
 			if !ok {
 				continue
 			}
-			if fileType.Has(AttributeImg) && len(file.Bytes) > 0 && utf8.Valid(file.Bytes) {
+			if (fileType.Has(AttributeImg) || fileType.Has(AttributeVideo)) && len(file.Bytes) > 0 && utf8.Valid(file.Bytes) {
 				tarHeader.PAXRecords["NOTEBREW.file.caption"] = string(file.Bytes)
 			}
 			tarHeader.Typeflag = tar.TypeReg
@@ -2029,7 +2029,7 @@ func exportOutputDir(ctx context.Context, tarWriter *tar.Writer, fsys fs.FS, sit
 			if !ok {
 				continue
 			}
-			if fileType.Has(AttributeImg) && len(file.Bytes) > 0 && utf8.Valid(file.Bytes) {
+			if (fileType.Has(AttributeImg) || fileType.Has(AttributeVideo)) && len(file.Bytes) > 0 && utf8.Valid(file.Bytes) {
 				tarHeader.PAXRecords["NOTEBREW.file.caption"] = string(file.Bytes)
 			}
 			tarHeader.Typeflag = tar.TypeReg

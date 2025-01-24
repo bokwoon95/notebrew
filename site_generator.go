@@ -655,7 +655,7 @@ func (siteGen *SiteGenerator) GeneratePage(ctx context.Context, filePath, text s
 		}
 		return nil
 	})
-	// Fetch all the images and markdown files that belong to the page.
+	// Fetch all the images, videos and markdown files that belong to the page.
 	group.Go(func() (err error) {
 		defer stacktrace.RecoverPanic(&err)
 		markdownMu := sync.Mutex{}
@@ -1114,22 +1114,21 @@ func (siteGen *SiteGenerator) GeneratePost(ctx context.Context, filePath, text s
 		if tokenType == html.SelfClosingTagToken || tokenType == html.StartTagToken {
 			var key, val []byte
 			name, moreAttr := tokenizer.TagName()
-			if !bytes.Equal(name, []byte("img")) {
-				continue
-			}
-			for moreAttr {
-				key, val, moreAttr = tokenizer.TagAttr()
-				if !bytes.Equal(key, []byte("src")) {
-					continue
+			if bytes.Equal(name, []byte("img")) {
+				for moreAttr {
+					key, val, moreAttr = tokenizer.TagAttr()
+					if !bytes.Equal(key, []byte("src")) {
+						continue
+					}
+					uri, err := url.Parse(string(val))
+					if err != nil {
+						continue
+					}
+					if uri.Scheme != "" || uri.Host != "" || strings.Contains(uri.Path, "/") {
+						continue
+					}
+					imgIsMentioned[uri.Path] = struct{}{}
 				}
-				uri, err := url.Parse(string(val))
-				if err != nil {
-					continue
-				}
-				if uri.Scheme != "" || uri.Host != "" || strings.Contains(uri.Path, "/") {
-					continue
-				}
-				imgIsMentioned[uri.Path] = struct{}{}
 			}
 		}
 	}

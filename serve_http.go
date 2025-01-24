@@ -335,6 +335,24 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				nbrew.image(w, r, user, sitePrefix, urlPath, fileInfo)
 				return
 			}
+			if fileType.Has(AttributeVideo) {
+				fileInfo, err := fs.Stat(nbrew.FS.WithContext(r.Context()), path.Join(sitePrefix, urlPath))
+				if err != nil {
+					if errors.Is(err, fs.ErrNotExist) {
+						nbrew.NotFound(w, r)
+						return
+					}
+					nbrew.GetLogger(r.Context()).Error(err.Error())
+					nbrew.InternalServerError(w, r, err)
+					return
+				}
+				if fileInfo.IsDir() {
+					nbrew.directory(w, r, user, sitePrefix, urlPath, fileInfo)
+					return
+				}
+				nbrew.video(w, r, user, sitePrefix, urlPath, fileInfo)
+				return
+			}
 			file, err := nbrew.FS.WithContext(r.Context()).Open(path.Join(sitePrefix, urlPath))
 			if err != nil {
 				if errors.Is(err, fs.ErrNotExist) {
@@ -449,7 +467,17 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "404 Not Found", http.StatusNotFound)
 				return
 			}
-			reader, err := databaseFS.ObjectStorage.Get(r.Context(), urlPath)
+			var values map[string]any
+			objectStorage := databaseFS.ObjectStorage
+			if v, ok := objectStorage.(interface {
+				WithValues(map[string]any) ObjectStorage
+			}); ok {
+				values = map[string]any{
+					"httprange": r.Header.Get("Range"),
+				}
+				objectStorage = v.WithValues(values)
+			}
+			reader, err := objectStorage.Get(r.Context(), urlPath)
 			if err != nil {
 				if errors.Is(err, fs.ErrNotExist) || errors.Is(err, fs.ErrInvalid) {
 					http.Error(w, "404 Not Found", http.StatusNotFound)
@@ -460,6 +488,18 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			defer reader.Close()
+			if contentRange, ok := values["httpcontentrange"].(string); ok && contentRange != "" {
+				w.Header().Set("Content-Type", fileType.ContentType)
+				w.Header().Set("Cache-Control", "max-age=31536000, immutable" /* 1 year */)
+				w.Header().Set("Accept-Ranges", "bytes")
+				w.Header().Set("Content-Range", contentRange)
+				w.WriteHeader(http.StatusPartialContent)
+				_, err = io.Copy(w, reader)
+				if err != nil {
+					nbrew.GetLogger(r.Context()).Error(err.Error())
+				}
+				return
+			}
 			if readSeeker, ok := reader.(io.ReadSeeker); ok {
 				w.Header().Set("Content-Type", fileType.ContentType)
 				w.Header().Set("Cache-Control", "max-age=31536000, immutable" /* 1 year */)
@@ -538,7 +578,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var cacheControl string
 	if fileType.Ext == ".html" {
 		cacheControl = "no-cache"
-	} else if fileType.Has(AttributeImg) || fileType.Has(AttributeFont) {
+	} else if fileType.Has(AttributeImg) || fileType.Has(AttributeVideo) || fileType.Has(AttributeFont) {
 		cacheControl = "max-age=2592000, stale-while-revalidate=31536000" /* 1 month, 1 year */
 	} else {
 		cacheControl = "max-age=300, stale-while-revalidate=604800" /* 5 minutes, 1 week */

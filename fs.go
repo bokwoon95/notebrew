@@ -178,6 +178,12 @@ var AllowedFileTypes = map[string]FileType{
 		SizeLimit:   1 << 20, /* 1 MB */
 		Attribute:   AttributeGzippable | AttributeImg,
 	},
+	".mp4": {
+		Ext:         ".mp4",
+		ContentType: "video/mp4",
+		SizeLimit:   25 << 20, /* 25 MB */
+		Attribute:   AttributeObject | AttributeVideo,
+	},
 	".eot": {
 		Ext:         ".eot",
 		ContentType: "font/eot",
@@ -231,6 +237,7 @@ var AllowedFileTypes = map[string]FileType{
 var (
 	editableExts []string // do not modify! only read
 	imgExts      []string // do not modify! only read
+	videoExts    []string // do not modify! only read
 	fontExts     []string // do not modify! only read
 	objectExts   []string // do not modify! only read
 	populateExts = sync.OnceFunc(func() {
@@ -241,6 +248,9 @@ var (
 			if fileType.Has(AttributeImg) {
 				imgExts = append(imgExts, fileType.Ext)
 			}
+			if fileType.Has(AttributeVideo) {
+				videoExts = append(videoExts, fileType.Ext)
+			}
 			if fileType.Has(AttributeFont) {
 				fontExts = append(fontExts, fileType.Ext)
 			}
@@ -250,6 +260,7 @@ var (
 		}
 		slices.Sort(editableExts)
 		slices.Sort(imgExts)
+		slices.Sort(videoExts)
 		slices.Sort(fontExts)
 		slices.Sort(objectExts)
 	})

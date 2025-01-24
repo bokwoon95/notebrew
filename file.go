@@ -58,6 +58,8 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 		BelongsTo         string            `json:"belongsTo"`
 		AssetDir          string            `json:"assetDir"`
 		UploadableExts    []string          `json:"uploadableExts"`
+		ImgExts           []string          `json:"imgExts"`
+		VideoExts         []string          `json:"videoExts"`
 		PinnedAssets      []Asset           `json:"pinnedAssets"`
 		Assets            []Asset           `json:"assets"`
 		UploadCount       int64             `json:"uploadCount"`
@@ -121,6 +123,8 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 		response.Username = user.Username
 		response.DisableReason = user.DisableReason
 		response.SitePrefix = sitePrefix
+		response.ImgExts = imgExts
+		response.VideoExts = videoExts
 		if databaseFileInfo, ok := fileInfo.(*DatabaseFileInfo); ok {
 			response.FileID = databaseFileInfo.FileID
 			response.CreationTime = databaseFileInfo.CreationTime
@@ -178,9 +182,12 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 				response.URL = template.URL(response.ContentBaseURL + "/" + strings.TrimSuffix(tail, ".html") + "/")
 				response.AssetDir = path.Join("output", strings.TrimSuffix(tail, ".html"))
 			}
-			response.UploadableExts = make([]string, 0, len(imgExts)+3)
+			response.UploadableExts = make([]string, 0, len(imgExts)+len(videoExts)+3)
 			if !user.UserFlags["NoUploadImage"] {
 				response.UploadableExts = append(response.UploadableExts, imgExts...)
+			}
+			if !user.UserFlags["NoUploadVideo"] {
+				response.UploadableExts = append(response.UploadableExts, videoExts...)
 			}
 			response.UploadableExts = append(response.UploadableExts, ".css", ".js", ".md")
 			assetExts := make([]string, 0, len(imgExts)+3)
@@ -305,7 +312,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 					}
 					name := dirEntry.Name()
 					fileType := AllowedFileTypes[path.Ext(name)]
-					if fileType.Has(AttributeImg) || fileType.Ext == ".css" || fileType.Ext == ".js" || fileType.Ext == ".md" {
+					if fileType.Has(AttributeImg) || fileType.Has(AttributeVideo) || fileType.Ext == ".css" || fileType.Ext == ".js" || fileType.Ext == ".md" {
 						fileInfo, err := dirEntry.Info()
 						if err != nil {
 							nbrew.GetLogger(r.Context()).Error(err.Error())
@@ -337,8 +344,12 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 				response.URL = template.URL(response.ContentBaseURL + "/" + strings.TrimSuffix(filePath, ".md") + "/")
 			}
 			response.AssetDir = path.Join("output", strings.TrimSuffix(filePath, ".md"))
+			response.UploadableExts = make([]string, 0, len(imgExts)+len(videoExts))
 			if !user.UserFlags["NoUploadImage"] {
-				response.UploadableExts = imgExts
+				response.UploadableExts = append(response.UploadableExts, imgExts...)
+			}
+			if !user.UserFlags["NoUploadVideo"] {
+				response.UploadableExts = append(response.UploadableExts, videoExts...)
 			}
 			extFilter := sq.Expr("1 <> 1")
 			if len(imgExts) > 0 {
@@ -459,7 +470,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 					}
 					name := dirEntry.Name()
 					fileType := AllowedFileTypes[path.Ext(name)]
-					if fileType.Has(AttributeImg) {
+					if fileType.Has(AttributeImg) || fileType.Has(AttributeVideo) {
 						fileInfo, err := dirEntry.Info()
 						if err != nil {
 							nbrew.GetLogger(r.Context()).Error(err.Error())
@@ -838,11 +849,11 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 					fileType := AllowedFileTypes[path.Ext(fileName)]
 					switch head {
 					case "pages":
-						if !fileType.Has(AttributeImg) && fileType.Ext != ".css" && fileType.Ext != ".js" && fileType.Ext != ".md" {
+						if !fileType.Has(AttributeImg) && !fileType.Has(AttributeVideo) && fileType.Ext != ".css" && fileType.Ext != ".js" && fileType.Ext != ".md" {
 							continue
 						}
 					case "posts":
-						if !fileType.Has(AttributeImg) {
+						if !fileType.Has(AttributeImg) && !fileType.Has(AttributeVideo) {
 							continue
 						}
 					}
@@ -887,7 +898,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 								return
 							}
 						} else {
-							if nbrew.ImgCmd == "" {
+							if nbrew.LossyImgCmd == "" {
 								err := writeFile(r.Context(), filePath, http.MaxBytesReader(nil, part, fileType.SizeLimit))
 								if err != nil {
 									var maxBytesErr *http.MaxBytesError
@@ -904,7 +915,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 									return
 								}
 							} else {
-								cmdPath, err := exec.LookPath(nbrew.ImgCmd)
+								cmdPath, err := exec.LookPath(nbrew.LossyImgCmd)
 								if err != nil {
 									nbrew.GetLogger(r.Context()).Error(err.Error())
 									nbrew.InternalServerError(w, r, err)
@@ -974,6 +985,117 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 									return nil
 								})
 							}
+						}
+					} else if fileType.Has(AttributeVideo) {
+						if user.UserFlags["NoUploadVideo"] {
+							continue
+						}
+						if strings.TrimSuffix(fileName, fileType.Ext) == "video" {
+							var timestamp [8]byte
+							now := time.Now()
+							monotonicCounter.CompareAndSwap(0, now.Unix())
+							binary.BigEndian.PutUint64(timestamp[:], uint64(max(now.Unix(), monotonicCounter.Add(1))))
+							timestampSuffix := strings.TrimLeft(base32Encoding.EncodeToString(timestamp[len(timestamp)-5:]), "0")
+							fileName = "image-" + timestampSuffix + fileType.Ext
+						}
+						filePath := path.Join(outputDir, fileName)
+						_, err := fs.Stat(nbrew.FS.WithContext(r.Context()), filePath)
+						if err != nil {
+							if !errors.Is(err, fs.ErrNotExist) {
+								nbrew.GetLogger(r.Context()).Error(err.Error())
+								nbrew.InternalServerError(w, r, err)
+								return
+							}
+						} else {
+							filesExist = append(filesExist, fileName)
+							continue
+						}
+						if nbrew.VideoCmd == "" {
+							err := writeFile(r.Context(), filePath, http.MaxBytesReader(nil, part, fileType.SizeLimit))
+							if err != nil {
+								var maxBytesErr *http.MaxBytesError
+								if errors.As(err, &maxBytesErr) {
+									filesTooBig = append(filesTooBig, fileName)
+									continue
+								}
+								if errors.Is(err, ErrStorageLimitExceeded) {
+									nbrew.StorageLimitExceeded(w, r)
+									return
+								}
+								nbrew.GetLogger(r.Context()).Error(err.Error())
+								nbrew.InternalServerError(w, r, err)
+								return
+							}
+						} else {
+							cmdPath, err := exec.LookPath(nbrew.VideoCmd)
+							if err != nil {
+								nbrew.GetLogger(r.Context()).Error(err.Error())
+								nbrew.InternalServerError(w, r, err)
+								return
+							}
+							id := NewID()
+							inputPath := path.Join(tempDir, id.String()+"-input"+fileType.Ext)
+							outputPath := path.Join(tempDir, id.String()+"-output"+fileType.Ext)
+							input, err := os.OpenFile(inputPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+							if err != nil {
+								if !errors.Is(err, fs.ErrNotExist) {
+									nbrew.GetLogger(r.Context()).Error(err.Error())
+									nbrew.InternalServerError(w, r, err)
+									return
+								}
+								err := os.MkdirAll(filepath.Dir(inputPath), 0755)
+								if err != nil {
+									nbrew.GetLogger(r.Context()).Error(err.Error())
+									nbrew.InternalServerError(w, r, err)
+									return
+								}
+								input, err = os.OpenFile(inputPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+								if err != nil {
+									nbrew.GetLogger(r.Context()).Error(err.Error())
+									nbrew.InternalServerError(w, r, err)
+									return
+								}
+							}
+							_, err = io.Copy(input, http.MaxBytesReader(nil, part, fileType.SizeLimit))
+							if err != nil {
+								os.Remove(inputPath)
+								var maxBytesErr *http.MaxBytesError
+								if errors.As(err, &maxBytesErr) {
+									filesTooBig = append(filesTooBig, fileName)
+									continue
+								}
+								nbrew.GetLogger(r.Context()).Error(err.Error())
+								nbrew.InternalServerError(w, r, err)
+								return
+							}
+							err = input.Close()
+							if err != nil {
+								nbrew.GetLogger(r.Context()).Error(err.Error())
+								nbrew.InternalServerError(w, r, err)
+								return
+							}
+							group.Go(func() (err error) {
+								defer stacktrace.RecoverPanic(&err)
+								defer os.Remove(inputPath)
+								defer os.Remove(outputPath)
+								cmd := exec.CommandContext(groupctx, cmdPath, inputPath, outputPath)
+								cmd.Stdout = os.Stdout
+								cmd.Stderr = os.Stderr
+								err = cmd.Run()
+								if err != nil {
+									return stacktrace.New(err)
+								}
+								output, err := os.Open(outputPath)
+								if err != nil {
+									return stacktrace.New(err)
+								}
+								defer output.Close()
+								err = writeFile(groupctx, filePath, output)
+								if err != nil {
+									return err
+								}
+								return nil
+							})
 						}
 					} else {
 						filePath := path.Join(outputDir, fileName)

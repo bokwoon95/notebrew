@@ -51,6 +51,12 @@ type S3ObjectStorage struct {
 	// Logger is used for reporting errors that cannot be handled and are
 	// thrown away.
 	Logger *slog.Logger
+
+	// values is a key-value store containing values used by some S3 Object
+	// operations. Currently, the following values are recognized:
+	//
+	// - "httprange" => string (value of the HTTP Range header passed to GetObject)
+	values map[string]any
 }
 
 var _ ObjectStorage = (*S3ObjectStorage)(nil)
@@ -103,11 +109,26 @@ func NewS3Storage(ctx context.Context, config S3StorageConfig) (*S3ObjectStorage
 	return storage, nil
 }
 
+func (storage *S3ObjectStorage) WithValues(values map[string]any) ObjectStorage {
+	return &S3ObjectStorage{
+		Client:         storage.Client,
+		Bucket:         storage.Bucket,
+		ContentTypeMap: storage.ContentTypeMap,
+		Logger:         storage.Logger,
+		values:         values,
+	}
+}
+
 // Get implements the Get ObjectStorage operation for S3ObjectStorage.
 func (storage *S3ObjectStorage) Get(ctx context.Context, key string) (io.ReadCloser, error) {
+	var httpRange *string
+	if value, ok := storage.values["httprange"].(string); ok && value != "" {
+		httpRange = &value
+	}
 	output, err := storage.Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: &storage.Bucket,
 		Key:    aws.String(key),
+		Range:  httpRange,
 	})
 	if err != nil {
 		var apiErr smithy.APIError
@@ -117,6 +138,9 @@ func (storage *S3ObjectStorage) Get(ctx context.Context, key string) (io.ReadClo
 			}
 		}
 		return nil, stacktrace.New(err)
+	}
+	if output.ContentRange != nil {
+		storage.values["httpcontentrange"] = *output.ContentRange
 	}
 	return output.Body, nil
 }

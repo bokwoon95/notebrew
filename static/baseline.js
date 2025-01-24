@@ -79,9 +79,9 @@ for (const dataPaste of document.querySelectorAll("[data-paste]")) {
     if (obj.name) {
       name = obj.name;
     }
-    if (obj.ext) {
-      for (let i = 0; i < obj.ext.length; i++) {
-        validExt.add(obj.ext[i]);
+    if (obj.exts) {
+      for (let i = 0; i < obj.exts.length; i++) {
+        validExt.add(obj.exts[i]);
       }
     }
   } catch (e) {

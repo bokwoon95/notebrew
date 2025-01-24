@@ -268,6 +268,13 @@ func (nbrew *Notebrew) uploadfile(w http.ResponseWriter, r *http.Request, user U
 			binary.BigEndian.PutUint64(timestamp[:], uint64(max(now.Unix(), monotonicCounter.Add(1))))
 			timestampSuffix := strings.TrimLeft(base32Encoding.EncodeToString(timestamp[len(timestamp)-5:]), "0")
 			fileName = "image-" + timestampSuffix + fileType.Ext
+		} else if fileType.Has(AttributeVideo) && strings.TrimSuffix(fileName, fileType.Ext) == "video" {
+			var timestamp [8]byte
+			now := time.Now()
+			monotonicCounter.CompareAndSwap(0, now.Unix())
+			binary.BigEndian.PutUint64(timestamp[:], uint64(max(now.Unix(), monotonicCounter.Add(1))))
+			timestampSuffix := strings.TrimLeft(base32Encoding.EncodeToString(timestamp[len(timestamp)-5:]), "0")
+			fileName = "video-" + timestampSuffix + fileType.Ext
 		}
 		filePath := path.Join(sitePrefix, response.Parent, fileName)
 		_, err = fs.Stat(nbrew.FS.WithContext(r.Context()), filePath)
@@ -284,8 +291,100 @@ func (nbrew *Notebrew) uploadfile(w http.ResponseWriter, r *http.Request, user U
 
 		switch head {
 		case "notes":
-			if fileType.Has(AttributeEditable) || fileType.Has(AttributeImg) || fileType.Has(AttributeFont) {
+			if fileType.Has(AttributeEditable) || fileType.Has(AttributeImg) || fileType.Has(AttributeVideo) || fileType.Has(AttributeFont) {
 				if fileType.Has(AttributeImg) && user.UserFlags["NoUploadImage"] {
+					continue
+				}
+				if fileType.Has(AttributeVideo) {
+					if user.UserFlags["NoUploadVideo"] {
+						continue
+					}
+					if nbrew.VideoCmd == "" {
+						err := writeFile(r.Context(), filePath, http.MaxBytesReader(nil, part, fileType.SizeLimit))
+						if err != nil {
+							var maxBytesErr *http.MaxBytesError
+							if errors.As(err, &maxBytesErr) {
+								response.FilesTooBig = append(response.FilesTooBig, fileName)
+								continue
+							}
+							if errors.Is(err, ErrStorageLimitExceeded) {
+								nbrew.StorageLimitExceeded(w, r)
+								return
+							}
+							nbrew.GetLogger(r.Context()).Error(err.Error())
+							nbrew.InternalServerError(w, r, err)
+							return
+						}
+					} else {
+						cmdPath, err := exec.LookPath(nbrew.VideoCmd)
+						if err != nil {
+							nbrew.GetLogger(r.Context()).Error(err.Error())
+							nbrew.InternalServerError(w, r, err)
+							return
+						}
+						id := NewID()
+						inputPath := path.Join(tempDir, id.String()+"-input"+fileType.Ext)
+						outputPath := path.Join(tempDir, id.String()+"-output"+fileType.Ext)
+						input, err := os.OpenFile(inputPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+						if err != nil {
+							if !errors.Is(err, fs.ErrNotExist) {
+								nbrew.GetLogger(r.Context()).Error(err.Error())
+								nbrew.InternalServerError(w, r, err)
+								return
+							}
+							err := os.MkdirAll(filepath.Dir(inputPath), 0755)
+							if err != nil {
+								nbrew.GetLogger(r.Context()).Error(err.Error())
+								nbrew.InternalServerError(w, r, err)
+								return
+							}
+							input, err = os.OpenFile(inputPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+							if err != nil {
+								nbrew.GetLogger(r.Context()).Error(err.Error())
+								nbrew.InternalServerError(w, r, err)
+								return
+							}
+						}
+						_, err = io.Copy(input, http.MaxBytesReader(nil, part, fileType.SizeLimit))
+						if err != nil {
+							os.Remove(inputPath)
+							var maxBytesErr *http.MaxBytesError
+							if errors.As(err, &maxBytesErr) {
+								response.FilesTooBig = append(response.FilesTooBig, fileName)
+								continue
+							}
+							nbrew.GetLogger(r.Context()).Error(err.Error())
+							nbrew.InternalServerError(w, r, err)
+							return
+						}
+						err = input.Close()
+						if err != nil {
+							nbrew.GetLogger(r.Context()).Error(err.Error())
+							nbrew.InternalServerError(w, r, err)
+							return
+						}
+						group.Go(func() (err error) {
+							defer stacktrace.RecoverPanic(&err)
+							defer os.Remove(inputPath)
+							defer os.Remove(outputPath)
+							cmd := exec.CommandContext(groupctx, cmdPath, inputPath, outputPath)
+							cmd.Stdout = os.Stdout
+							cmd.Stderr = os.Stderr
+							err = cmd.Run()
+							if err != nil {
+								return stacktrace.New(err)
+							}
+							output, err := os.Open(outputPath)
+							if err != nil {
+								return stacktrace.New(err)
+							}
+							err = writeFile(groupctx, filePath, output)
+							if err != nil {
+								return err
+							}
+							return nil
+						})
+					}
 					continue
 				}
 				err := writeFile(r.Context(), filePath, http.MaxBytesReader(nil, part, fileType.SizeLimit))
@@ -439,7 +538,7 @@ func (nbrew *Notebrew) uploadfile(w http.ResponseWriter, r *http.Request, user U
 						return
 					}
 				} else {
-					if nbrew.ImgCmd == "" {
+					if nbrew.LossyImgCmd == "" {
 						err := writeFile(r.Context(), filePath, http.MaxBytesReader(nil, part, fileType.SizeLimit))
 						if err != nil {
 							var maxBytesErr *http.MaxBytesError
@@ -456,7 +555,7 @@ func (nbrew *Notebrew) uploadfile(w http.ResponseWriter, r *http.Request, user U
 							return
 						}
 					} else {
-						imgCmdPath, err := exec.LookPath(nbrew.ImgCmd)
+						cmdPath, err := exec.LookPath(nbrew.LossyImgCmd)
 						if err != nil {
 							nbrew.GetLogger(r.Context()).Error(err.Error())
 							nbrew.InternalServerError(w, r, err)
@@ -507,7 +606,7 @@ func (nbrew *Notebrew) uploadfile(w http.ResponseWriter, r *http.Request, user U
 							defer stacktrace.RecoverPanic(&err)
 							defer os.Remove(inputPath)
 							defer os.Remove(outputPath)
-							cmd := exec.CommandContext(groupctx, imgCmdPath, inputPath, outputPath)
+							cmd := exec.CommandContext(groupctx, cmdPath, inputPath, outputPath)
 							cmd.Stdout = os.Stdout
 							cmd.Stderr = os.Stderr
 							err = cmd.Run()
@@ -525,6 +624,96 @@ func (nbrew *Notebrew) uploadfile(w http.ResponseWriter, r *http.Request, user U
 							return nil
 						})
 					}
+				}
+			} else if fileType.Has(AttributeVideo) {
+				if user.UserFlags["NoUploadVideo"] {
+					continue
+				}
+				if nbrew.VideoCmd == "" {
+					err := writeFile(r.Context(), filePath, http.MaxBytesReader(nil, part, fileType.SizeLimit))
+					if err != nil {
+						var maxBytesErr *http.MaxBytesError
+						if errors.As(err, &maxBytesErr) {
+							response.FilesTooBig = append(response.FilesTooBig, fileName)
+							continue
+						}
+						if errors.Is(err, ErrStorageLimitExceeded) {
+							nbrew.StorageLimitExceeded(w, r)
+							return
+						}
+						nbrew.GetLogger(r.Context()).Error(err.Error())
+						nbrew.InternalServerError(w, r, err)
+						return
+					}
+				} else {
+					cmdPath, err := exec.LookPath(nbrew.VideoCmd)
+					if err != nil {
+						nbrew.GetLogger(r.Context()).Error(err.Error())
+						nbrew.InternalServerError(w, r, err)
+						return
+					}
+					id := NewID()
+					inputPath := path.Join(tempDir, id.String()+"-input"+fileType.Ext)
+					outputPath := path.Join(tempDir, id.String()+"-output"+fileType.Ext)
+					input, err := os.OpenFile(inputPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+					if err != nil {
+						if !errors.Is(err, fs.ErrNotExist) {
+							nbrew.GetLogger(r.Context()).Error(err.Error())
+							nbrew.InternalServerError(w, r, err)
+							return
+						}
+						err := os.MkdirAll(filepath.Dir(inputPath), 0755)
+						if err != nil {
+							nbrew.GetLogger(r.Context()).Error(err.Error())
+							nbrew.InternalServerError(w, r, err)
+							return
+						}
+						input, err = os.OpenFile(inputPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+						if err != nil {
+							nbrew.GetLogger(r.Context()).Error(err.Error())
+							nbrew.InternalServerError(w, r, err)
+							return
+						}
+					}
+					_, err = io.Copy(input, http.MaxBytesReader(nil, part, fileType.SizeLimit))
+					if err != nil {
+						os.Remove(inputPath)
+						var maxBytesErr *http.MaxBytesError
+						if errors.As(err, &maxBytesErr) {
+							response.FilesTooBig = append(response.FilesTooBig, fileName)
+							continue
+						}
+						nbrew.GetLogger(r.Context()).Error(err.Error())
+						nbrew.InternalServerError(w, r, err)
+						return
+					}
+					err = input.Close()
+					if err != nil {
+						nbrew.GetLogger(r.Context()).Error(err.Error())
+						nbrew.InternalServerError(w, r, err)
+						return
+					}
+					group.Go(func() (err error) {
+						defer stacktrace.RecoverPanic(&err)
+						defer os.Remove(inputPath)
+						defer os.Remove(outputPath)
+						cmd := exec.CommandContext(groupctx, cmdPath, inputPath, outputPath)
+						cmd.Stdout = os.Stdout
+						cmd.Stderr = os.Stderr
+						err = cmd.Run()
+						if err != nil {
+							return stacktrace.New(err)
+						}
+						output, err := os.Open(outputPath)
+						if err != nil {
+							return stacktrace.New(err)
+						}
+						err = writeFile(groupctx, filePath, output)
+						if err != nil {
+							return err
+						}
+						return nil
+					})
 				}
 			}
 		case "imports":

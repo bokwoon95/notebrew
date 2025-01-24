@@ -80,12 +80,19 @@ func Notebrew(configDir, dataDir string, csp map[string]string) (*notebrew.Noteb
 		nbrew.CDNDomain = string(bytes.TrimSpace(b))
 	}
 
-	// Img cmd.
-	b, err = os.ReadFile(filepath.Join(configDir, "imgcmd.txt"))
+	// Lossy img cmd.
+	b, err = os.ReadFile(filepath.Join(configDir, "lossyimgcmd.txt"))
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, closers, fmt.Errorf("%s: %w", filepath.Join(configDir, "imgcmd.txt"), err)
+		return nil, closers, fmt.Errorf("%s: %w", filepath.Join(configDir, "lossyimgcmd.txt"), err)
 	}
-	nbrew.ImgCmd = string(bytes.TrimSpace(b))
+	nbrew.LossyImgCmd = string(bytes.TrimSpace(b))
+
+	// Video cmd.
+	b, err = os.ReadFile(filepath.Join(configDir, "videocmd.txt"))
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, closers, fmt.Errorf("%s: %w", filepath.Join(configDir, "videocmd.txt"), err)
+	}
+	nbrew.VideoCmd = string(bytes.TrimSpace(b))
 
 	// MaxMind DB reader.
 	b, err = os.ReadFile(filepath.Join(configDir, "maxminddb.txt"))
@@ -1423,6 +1430,15 @@ func Notebrew(configDir, dataDir string, csp map[string]string) (*notebrew.Noteb
 	// img-src
 	buf.WriteString(" img-src 'self' data:")
 	if value := csp["img-src"]; value != "" {
+		buf.WriteString(" " + value)
+	}
+	if nbrew.CDNDomain != "" {
+		buf.WriteString(" " + nbrew.CDNDomain)
+	}
+	buf.WriteString(";")
+	// media-src
+	buf.WriteString(" media-src 'self'")
+	if value := csp["media-src"]; value != "" {
 		buf.WriteString(" " + value)
 	}
 	if nbrew.CDNDomain != "" {

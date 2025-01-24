@@ -337,7 +337,7 @@
     <button type='submit' class='button ba ph3 br2 b--black pv1 ml1 bg-transparent' name='regenerateSite' value='true'>save and regenerate site</button>
     {{- end }}
   </div>
-  <div data-editor='{"ext":"{{ ext $.FilePath }}","wordwrapCheckboxID":"wordwrap","scrollIntoView":true,"ajaxSubmission":{{ eq (head $.FilePath) "pages" "posts" }}}'>
+  <div data-editor='{"ext":"{{ ext $.FilePath }}","wordwrapCheckboxID":"wordwrap","scrollIntoView":true,"ajaxSubmission":{{ eq (head $.FilePath) "pages" "posts" }},"imgExts":{{ jsonArray $.ImgExts }},"videoExts":{{ jsonArray $.VideoExts }}}'>
     <textarea id='content' name='content' dir='auto' class='w-100 pa2 min-h5 h6 resize-vertical code'>{{ $.Content }}</textarea>
   </div>
   {{- if and (eq (head $.FilePath) "pages") (eq (ext $.FilePath) ".html") }}
@@ -366,11 +366,11 @@
       {{- if eq (head $.FilePath) "pages" }}
       <div class='b'>upload assets:</div>
       <div><input type='file' name='file' style='max-width: 220px;' accept='{{ joinStrings $.UploadableExts "," }}' multiple></div>
-      <div><input placeholder='paste files here' class='mt2' data-paste='{"name":"file","ext":{{ jsonArray $.UploadableExts }}}'></div>
+      <div><input placeholder='paste files here' class='mt2' data-paste='{"name":"file","exts":{{ jsonArray $.UploadableExts }}}'></div>
       {{- else if eq (head $.FilePath) "posts" }}
       <div class='b'>upload images:</div>
       <div><input type='file' name='file' style='max-width: 220px;' accept='{{ joinStrings $.UploadableExts "," }}' multiple></div>
-      <div><input placeholder='paste images here' class='mt2' data-paste='{"name":"file","ext":{{ jsonArray $.UploadableExts }}}'></div>
+      <div><input placeholder='paste images here' class='mt2' data-paste='{"name":"file","exts":{{ jsonArray $.UploadableExts }}}'></div>
       {{- end }}
     </div>
     {{- end }}

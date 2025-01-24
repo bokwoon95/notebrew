@@ -30,7 +30,8 @@ Keys:
   notebrew config cmsdomain     # (txt) Domain that the CMS is served on.
   notebrew config contentdomain # (txt) Domain that the content is served on.
   notebrew config cdndomain     # (txt) Domain of the Content Delivery Network (CDN), if any.
-  notebrew config imgcmd        # (txt) Image preprocessing command.
+  notebrew config lossyimgcmd   # (txt) Lossy image preprocessing command.
+  notebrew config videocmd      # (txt) Video preprocessing command.
   notebrew config maxminddb     # (txt) Location of the MaxMind GeoLite2/GeoIP2 mmdb file.
   notebrew config database      # (json) Database configuration.
   notebrew config files         # (json) File system configuration.
@@ -153,14 +154,27 @@ func (cmd *ConfigCmd) Run() error {
 			}
 			io.WriteString(cmd.Stdout, string(bytes.TrimSpace(b))+"\n")
 		}
-	case "imgcmd":
+	case "lossyimgcmd":
 		if cmd.Value.Valid {
-			err := os.WriteFile(filepath.Join(cmd.ConfigDir, "imgcmd.txt"), []byte(cmd.Value.String), 0644)
+			err := os.WriteFile(filepath.Join(cmd.ConfigDir, "lossyimgcmd.txt"), []byte(cmd.Value.String), 0644)
 			if err != nil {
 				return err
 			}
 		} else {
-			b, err := os.ReadFile(filepath.Join(cmd.ConfigDir, "imgcmd.txt"))
+			b, err := os.ReadFile(filepath.Join(cmd.ConfigDir, "lossyimgcmd.txt"))
+			if err != nil && !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
+			io.WriteString(cmd.Stdout, string(bytes.TrimSpace(b))+"\n")
+		}
+	case "videocmd":
+		if cmd.Value.Valid {
+			err := os.WriteFile(filepath.Join(cmd.ConfigDir, "videocmd.txt"), []byte(cmd.Value.String), 0644)
+			if err != nil {
+				return err
+			}
+		} else {
+			b, err := os.ReadFile(filepath.Join(cmd.ConfigDir, "videocmd.txt"))
 			if err != nil && !errors.Is(err, fs.ErrNotExist) {
 				return err
 			}

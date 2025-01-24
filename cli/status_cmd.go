@@ -76,10 +76,15 @@ func (cmd *StatusCmd) Run() error {
 	} else {
 		fmt.Fprintf(cmd.Stdout, "cdndomain     = %s\n", cmd.Notebrew.CDNDomain)
 	}
-	if cmd.Notebrew.ImgCmd == "" {
-		fmt.Fprintf(cmd.Stdout, "imgcmd        = <not configured>\n")
+	if cmd.Notebrew.LossyImgCmd == "" {
+		fmt.Fprintf(cmd.Stdout, "lossyimgcmd   = <not configured>\n")
 	} else {
-		fmt.Fprintf(cmd.Stdout, "imgcmd        = %s\n", cmd.Notebrew.ImgCmd)
+		fmt.Fprintf(cmd.Stdout, "lossyimgcmd   = %s\n", cmd.Notebrew.LossyImgCmd)
+	}
+	if cmd.Notebrew.VideoCmd == "" {
+		fmt.Fprintf(cmd.Stdout, "videocmd      = <not configured>\n")
+	} else {
+		fmt.Fprintf(cmd.Stdout, "videocmd      = %s\n", cmd.Notebrew.VideoCmd)
 	}
 
 	// MaxMind DB.

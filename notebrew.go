@@ -85,18 +85,27 @@ type Notebrew struct {
 	// images. Examples: cdn.nbrew.net, nbrewcdn.net.
 	CDNDomain string
 
-	// ImgCmd is the command (must reside in $PATH) used to preprocess images
-	// for the web before they are saved to the FS. Images in the notes folder
-	// are never prerpocessed and are uploaded as-is. This serves as an a
-	// escape hatch for users who wish to upload their images without any image
-	// preprocessing, as they can upload images to the notes folder first
-	// before moving it elsewhere.
+	// LossyImgCmd is the command (must reside in $PATH) used to preprocess
+	// images in a lossy way for the web before they are saved to the FS.
+	// Images in the notes folder are never preprocessed and are uploaded
+	// as-is. This serves as an a escape hatch for users who wish to upload
+	// their images without any lossy image preprocessing, as they can upload
+	// images to the notes folder first before moving it elsewhere.
 	//
-	// ImgCmd should take in arguments in the form of `<ImgCmd> $INPUT_PATH
-	// $OUTPUT_PATH`, where $INPUT_PATH is the input path to the raw image and
-	// $OUTPUT_PATH is output path where ImgCmd should save the preprocessed
-	// image.
-	ImgCmd string
+	// LossyImgCmd should take in arguments in the form of `<LossyImgCmd>
+	// $INPUT_PATH $OUTPUT_PATH`, where $INPUT_PATH is the input path to the
+	// raw image and $OUTPUT_PATH is output path where LossyImgCmd should save
+	// the preprocessed image.
+	LossyImgCmd string
+
+	// VideoCmd is the command (must reside in $PATH) used to preprocess videos
+	// in a lossless way for the web before they are saved to the FS.
+	//
+	// VideoCmd should take in arguments in the form of `<VideoCmd> $INPUT_PATH
+	// $OUTPUT_PATH`, where $INPUT_PATH is the input path to the raw video and
+	// $OUTPUT_PATH is output path where VideoCmd should save the preprocessed
+	// video.
+	VideoCmd string
 
 	// (Required) Port is port that notebrew is listening on.
 	Port int

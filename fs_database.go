@@ -103,6 +103,8 @@ type DatabaseFS struct {
 	// - "creationTime" => time.Time (sets the creationTime for files created by OpenWriter/Mkdir/MkdirAll)
 	//
 	// - "caption"      => string    (sets the caption for images created by OpenWriter)
+	//
+	// - "httprange"    => string    (value of the HTTP Range header passed to GetObject, if the underlying file is in ObjectStorage)
 	values map[string]any
 }
 
@@ -158,6 +160,8 @@ func (fsys *DatabaseFS) WithContext(ctx context.Context) FS {
 // - "creationTime" => time.Time (sets the creationTime for files created by OpenWriter/Mkdir/MkdirAll)
 //
 // - "caption"      => string    (sets the caption for images created by OpenWriter)
+//
+// - "httprange"    => string    (value of the HTTP Range header passed to GetObject, if the underlying file is in ObjectStorage)
 //
 // These values will apply to *all* filesystem operations, so if you only want
 // to set the modTime or creationTime for a specific file you will have to
@@ -270,7 +274,13 @@ func (fsys *DatabaseFS) Open(name string) (fs.File, error) {
 	}
 	file.isFulltextIndexed = IsFulltextIndexed(file.info.FilePath)
 	if fileType.Has(AttributeObject) {
-		file.readCloser, err = fsys.ObjectStorage.Get(file.ctx, file.info.FileID.String()+path.Ext(file.info.FilePath))
+		objectStorage := fsys.ObjectStorage
+		if v, ok := objectStorage.(interface {
+			WithValues(map[string]any) ObjectStorage
+		}); ok {
+			objectStorage = v.WithValues(fsys.values)
+		}
+		file.readCloser, err = objectStorage.Get(file.ctx, file.info.FileID.String()+path.Ext(file.info.FilePath))
 		if err != nil {
 			return nil, stacktrace.New(err)
 		}
@@ -787,7 +797,7 @@ func (file *DatabaseFileWriter) Close() error {
 		// If file exists, just have to update the file entry in the database.
 		if file.fileType.Has(AttributeObject) {
 			var text sql.NullString
-			if file.fileType.Has(AttributeImg) && file.caption != "" {
+			if (file.fileType.Has(AttributeImg) || file.fileType.Has(AttributeVideo)) && file.caption != "" {
 				text = sql.NullString{String: file.caption, Valid: true}
 			}
 			_, err := sq.Exec(file.ctx, file.db, sq.Query{
@@ -839,7 +849,7 @@ func (file *DatabaseFileWriter) Close() error {
 		// into the database.
 		if file.fileType.Has(AttributeObject) {
 			var text sql.NullString
-			if file.fileType.Has(AttributeImg) && file.caption != "" {
+			if (file.fileType.Has(AttributeImg) || file.fileType.Has(AttributeVideo)) && file.caption != "" {
 				text = sql.NullString{String: file.caption, Valid: true}
 			}
 			_, err := sq.Exec(file.ctx, file.db, sq.Query{

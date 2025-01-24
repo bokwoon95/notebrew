@@ -636,7 +636,7 @@ func (nbrew *Notebrew) rename(w http.ResponseWriter, r *http.Request, user User,
 			fileType := AllowedFileTypes[response.Ext]
 			next, _, _ := strings.Cut(tail, "/")
 			if next == "posts" {
-				if fileType.Has(AttributeImg) {
+				if fileType.Has(AttributeImg) || fileType.Has(AttributeVideo) {
 					parentPost := tail + ".md"
 					file, err := nbrew.FS.WithContext(r.Context()).Open(path.Join(sitePrefix, parentPost))
 					if err != nil {
@@ -713,7 +713,7 @@ func (nbrew *Notebrew) rename(w http.ResponseWriter, r *http.Request, user User,
 					response.RegenerationStats.TimeTaken = time.Since(startedAt).String()
 				}
 			} else if next != "themes" {
-				if fileType.Has(AttributeImg) || fileType.Ext == ".md" {
+				if fileType.Has(AttributeImg) || fileType.Has(AttributeVideo) || fileType.Ext == ".md" {
 					var parentPage string
 					if tail == "" {
 						parentPage = "pages/index.html"

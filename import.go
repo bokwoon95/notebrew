@@ -645,7 +645,7 @@ func (nbrew *Notebrew) importTgz(ctx context.Context, importJobID ID, sitePrefix
 			}
 		}
 		caption := ""
-		if fileType.Has(AttributeImg) {
+		if fileType.Has(AttributeImg) || fileType.Has(AttributeVideo) {
 			if s, ok := header.PAXRecords["NOTEBREW.file.caption"]; ok {
 				caption = s
 			}
@@ -659,10 +659,13 @@ func (nbrew *Notebrew) importTgz(ctx context.Context, importJobID ID, sitePrefix
 					return err
 				}
 			case tar.TypeReg:
-				if !fileType.Has(AttributeEditable) && !fileType.Has(AttributeImg) && !fileType.Has(AttributeFont) {
+				if !fileType.Has(AttributeEditable) && !fileType.Has(AttributeImg) && !fileType.Has(AttributeVideo) && !fileType.Has(AttributeFont) {
 					continue
 				}
 				if fileType.Has(AttributeImg) && user.UserFlags["NoUploadImage"] && fileType.Ext != ".svg" {
+					continue
+				}
+				if fileType.Has(AttributeVideo) && user.UserFlags["NoUploadVideo"] {
 					continue
 				}
 				err := writeFile(ctx, path.Join(sitePrefix, header.Name), modTime, creationTime, caption, isPinned, io.LimitReader(tarReader, fileType.SizeLimit))
@@ -725,10 +728,13 @@ func (nbrew *Notebrew) importTgz(ctx context.Context, importJobID ID, sitePrefix
 					return err
 				}
 			case tar.TypeReg:
-				if !fileType.Has(AttributeEditable) && !fileType.Has(AttributeImg) && !fileType.Has(AttributeFont) {
+				if !fileType.Has(AttributeEditable) && !fileType.Has(AttributeImg) && !fileType.Has(AttributeVideo) && !fileType.Has(AttributeFont) {
 					continue
 				}
 				if fileType.Has(AttributeImg) && user.UserFlags["NoUploadImage"] && fileType.Ext != ".svg" {
+					continue
+				}
+				if fileType.Has(AttributeVideo) && user.UserFlags["NoUploadVideo"] {
 					continue
 				}
 				err := writeFile(ctx, path.Join(sitePrefix, header.Name), modTime, creationTime, caption, isPinned, io.LimitReader(tarReader, fileType.SizeLimit))
