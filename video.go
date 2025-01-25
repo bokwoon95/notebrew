@@ -37,7 +37,6 @@ func (nbrew *Notebrew) video(w http.ResponseWriter, r *http.Request, user User, 
 		ModTime           time.Time         `json:"modTime"`
 		CreationTime      time.Time         `json:"creationTime"`
 		Content           string            `json:"content"`
-		ContentType       string            `json:"contentType"`
 		URL               template.URL      `json:"url"`
 		BelongsTo         string            `json:"belongsTo"`
 		PreviousVideoID   ID                `json:"previousVideoID"`
@@ -125,7 +124,6 @@ func (nbrew *Notebrew) video(w http.ResponseWriter, r *http.Request, user User, 
 		response.Size = fileInfo.Size()
 		response.IsDir = fileInfo.IsDir()
 		response.ModTime = fileInfo.ModTime()
-		response.ContentType = fileType.ContentType
 		databaseFS, ok := &DatabaseFS{}, false
 		switch v := nbrew.FS.(type) {
 		case interface{ As(any) bool }:
