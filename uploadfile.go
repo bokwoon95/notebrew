@@ -695,8 +695,8 @@ func (nbrew *Notebrew) uploadfile(w http.ResponseWriter, r *http.Request, user U
 					}
 					group.Go(func() (err error) {
 						defer stacktrace.RecoverPanic(&err)
-						// defer os.Remove(inputPath)
-						// defer os.Remove(outputPath)
+						defer os.Remove(inputPath)
+						defer os.Remove(outputPath)
 						cmd := exec.CommandContext(groupctx, cmdPath, inputPath, outputPath)
 						cmd.Stdout = os.Stdout
 						cmd.Stderr = os.Stderr
