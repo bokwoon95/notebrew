@@ -100,6 +100,12 @@ func (fileType FileType) IsImg() bool {
 	return fileType.Has(AttributeImg)
 }
 
+// IsVideo is shorthand for Has(AttributeVideo). Used in templates, which do not
+// have access to the Attribute* constants.
+func (fileType FileType) IsVideo() bool {
+	return fileType.Has(AttributeVideo)
+}
+
 // IsObject is shorthand for Has(AttributeObject). Used in templates, which do
 // not have access to the Attribute* constants.
 func (fileType FileType) IsObject() bool {
