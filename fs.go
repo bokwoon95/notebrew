@@ -191,7 +191,7 @@ var AllowedFileTypes = map[string]FileType{
 		Attribute:   AttributeObject | AttributeVideo,
 	},
 	".webm": {
-		Ext:         ".mp4",
+		Ext:         ".webm",
 		ContentType: "video/webm",
 		SizeLimit:   25 << 20, /* 25 MB */
 		Attribute:   AttributeObject | AttributeVideo,
