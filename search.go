@@ -2,7 +2,6 @@ package notebrew
 
 import (
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"io/fs"
 	"net/http"
@@ -192,7 +191,6 @@ func (nbrew *Notebrew) search(w http.ResponseWriter, r *http.Request, user User,
 		response.AvailableFileTypes = append(response.AvailableFileTypes, ext)
 		availableFileTypes[ext] = struct{}{}
 	}
-	fmt.Printf("videoExts: %#v\n", videoExts)
 	for _, ext := range videoExts {
 		response.AvailableFileTypes = append(response.AvailableFileTypes, ext)
 		availableFileTypes[ext] = struct{}{}
