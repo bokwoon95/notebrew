@@ -191,6 +191,10 @@ func (nbrew *Notebrew) search(w http.ResponseWriter, r *http.Request, user User,
 		response.AvailableFileTypes = append(response.AvailableFileTypes, ext)
 		availableFileTypes[ext] = struct{}{}
 	}
+	for _, ext := range videoExts {
+		response.AvailableFileTypes = append(response.AvailableFileTypes, ext)
+		availableFileTypes[ext] = struct{}{}
+	}
 	response.AvailableFileTypes = append(response.AvailableFileTypes, ".json", "folder")
 	availableFileTypes[".json"] = struct{}{}
 	availableFileTypes["folder"] = struct{}{}
