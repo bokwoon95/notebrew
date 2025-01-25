@@ -184,6 +184,12 @@ var AllowedFileTypes = map[string]FileType{
 		SizeLimit:   25 << 20, /* 25 MB */
 		Attribute:   AttributeObject | AttributeVideo,
 	},
+	".webm": {
+		Ext:         ".mp4",
+		ContentType: "video/webm",
+		SizeLimit:   25 << 20, /* 25 MB */
+		Attribute:   AttributeObject | AttributeVideo,
+	},
 	".eot": {
 		Ext:         ".eot",
 		ContentType: "font/eot",
