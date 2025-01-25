@@ -182,7 +182,7 @@ var AllowedFileTypes = map[string]FileType{
 		Ext:         ".mp4",
 		ContentType: "video/mp4",
 		SizeLimit:   25 << 20, /* 25 MB */
-		Attribute:   AttributeObject | AttributeVideo | AttributeAttachment,
+		Attribute:   AttributeObject | AttributeVideo,
 	},
 	".eot": {
 		Ext:         ".eot",
