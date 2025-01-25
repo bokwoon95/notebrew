@@ -85,9 +85,9 @@
     {{- end }}
   </div>
   {{- if and $.CDNDomain $.IsDatabaseFS }}
-  <video controls src='//{{ $.CDNDomain }}/{{ $.FileID }}{{ ext $.FilePath }}' class='object-cover db center' style='max-height: 100%; max-width: 100%;'></video>
+  <video src='//{{ $.CDNDomain }}/{{ $.FileID }}{{ ext $.FilePath }}' class='object-cover db center' style='max-height: 100%; max-width: 100%;' controls{{ if le $.Size 5000000 }} autoplay muted loop playsinline{{ end }}></video>
   {{- else }}
-  <video controls src='?raw' class='object-cover db center' style='max-height: 100%; max-width: 100%;'></video>
+  <video src='?raw' class='object-cover db center' style='max-height: 100%; max-width: 100%;' controls{{ if le $.Size 5000000 }} autoplay muted loop playsinline{{ end }}></video>
   {{- end }}
   <div class='flex flex-wrap items-center break-word mv2'>
     {{- if $.PreviousVideoName }}
