@@ -98,7 +98,7 @@ func (nbrew *Notebrew) export(w http.ResponseWriter, r *http.Request, user User,
 				"baselineJS":            func() template.JS { return template.JS(BaselineJS) },
 				"referer":               func() string { return referer },
 				"getFileType": func(name string) FileType {
-					return AllowedFileTypes[path.Ext(name)]
+					return AllowedFileTypes[strings.ToLower(path.Ext(name))]
 				},
 			}
 			tmpl, err := template.New("export.html").Funcs(funcMap).ParseFS(RuntimeFS, "embed/export.html")
@@ -889,7 +889,7 @@ func (nbrew *Notebrew) exportTgz(ctx context.Context, exportJobID ID, sitePrefix
 				}
 				continue
 			}
-			fileType, ok := AllowedFileTypes[path.Ext(file.FilePath)]
+			fileType, ok := AllowedFileTypes[strings.ToLower(path.Ext(file.FilePath))]
 			if !ok {
 				continue
 			}
@@ -1041,7 +1041,7 @@ func (nbrew *Notebrew) exportTgz(ctx context.Context, exportJobID ID, sitePrefix
 				}
 				continue
 			}
-			_, ok := AllowedFileTypes[path.Ext(filePath)]
+			_, ok := AllowedFileTypes[strings.ToLower(path.Ext(filePath))]
 			if !ok {
 				file.Close()
 				continue
@@ -1316,7 +1316,7 @@ func exportDir(ctx context.Context, tarWriter *tar.Writer, fsys fs.FS, sitePrefi
 				}
 				continue
 			}
-			fileType, ok := AllowedFileTypes[path.Ext(file.FilePath)]
+			fileType, ok := AllowedFileTypes[strings.ToLower(path.Ext(file.FilePath))]
 			if !ok {
 				continue
 			}
@@ -1413,7 +1413,7 @@ func exportDir(ctx context.Context, tarWriter *tar.Writer, fsys fs.FS, sitePrefi
 			}
 			return nil
 		}
-		_, ok := AllowedFileTypes[path.Ext(filePath)]
+		_, ok := AllowedFileTypes[strings.ToLower(path.Ext(filePath))]
 		if !ok {
 			return nil
 		}
@@ -1698,7 +1698,7 @@ func exportOutputDir(ctx context.Context, tarWriter *tar.Writer, fsys fs.FS, sit
 						if err != nil {
 							return stacktrace.New(err)
 						}
-						fileType, ok := AllowedFileTypes[path.Ext(file.FilePath)]
+						fileType, ok := AllowedFileTypes[strings.ToLower(path.Ext(file.FilePath))]
 						if !ok {
 							continue
 						}
@@ -1769,7 +1769,7 @@ func exportOutputDir(ctx context.Context, tarWriter *tar.Writer, fsys fs.FS, sit
 							continue
 						}
 						name := dirEntry.Name()
-						_, ok := AllowedFileTypes[path.Ext(name)]
+						_, ok := AllowedFileTypes[strings.ToLower(path.Ext(name))]
 						if !ok {
 							continue
 						}
@@ -2025,7 +2025,7 @@ func exportOutputDir(ctx context.Context, tarWriter *tar.Writer, fsys fs.FS, sit
 				}
 				continue
 			}
-			fileType, ok := AllowedFileTypes[path.Ext(file.FilePath)]
+			fileType, ok := AllowedFileTypes[strings.ToLower(path.Ext(file.FilePath))]
 			if !ok {
 				continue
 			}
@@ -2131,7 +2131,7 @@ func exportOutputDir(ctx context.Context, tarWriter *tar.Writer, fsys fs.FS, sit
 			}
 			return nil
 		}
-		_, ok := AllowedFileTypes[path.Ext(filePath)]
+		_, ok := AllowedFileTypes[strings.ToLower(path.Ext(filePath))]
 		if !ok {
 			return nil
 		}

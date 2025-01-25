@@ -465,7 +465,7 @@ func (nbrew *Notebrew) clipboard(w http.ResponseWriter, r *http.Request, user Us
 							invalidCh <- name
 							return nil
 						}
-						fileType := AllowedFileTypes[path.Ext(srcFilePath)]
+						fileType := AllowedFileTypes[strings.ToLower(path.Ext(srcFilePath))]
 						if next == "posts" {
 							if !fileType.Has(AttributeImg) && !fileType.Has(AttributeVideo) {
 								invalidCh <- name

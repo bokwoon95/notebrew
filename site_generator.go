@@ -705,7 +705,7 @@ func (siteGen *SiteGenerator) GeneratePage(ctx context.Context, filePath, text s
 					return stacktrace.New(err)
 				}
 				name := path.Base(result.FilePath)
-				fileType := AllowedFileTypes[path.Ext(result.FilePath)]
+				fileType := AllowedFileTypes[strings.ToLower(path.Ext(result.FilePath))]
 				if fileType.Has(AttributeImg) {
 					pageData.Images = append(pageData.Images, Image{
 						Parent: urlPath,
@@ -771,7 +771,7 @@ func (siteGen *SiteGenerator) GeneratePage(ctx context.Context, filePath, text s
 			for _, dirEntry := range dirEntries {
 				dirEntry := dirEntry
 				name := dirEntry.Name()
-				fileType := AllowedFileTypes[path.Ext(name)]
+				fileType := AllowedFileTypes[strings.ToLower(path.Ext(name))]
 				if fileType.Has(AttributeImg) {
 					pageData.Images = append(pageData.Images, Image{Parent: urlPath, Name: name})
 				} else if fileType.Ext == ".md" {
@@ -1235,7 +1235,7 @@ func (siteGen *SiteGenerator) GeneratePost(ctx context.Context, filePath, text s
 			if dirEntry.IsDir() {
 				continue
 			}
-			fileType := AllowedFileTypes[path.Ext(name)]
+			fileType := AllowedFileTypes[strings.ToLower(path.Ext(name))]
 			if fileType.Has(AttributeImg) {
 				if _, ok := imgIsMentioned[name]; ok {
 					continue
@@ -1918,7 +1918,7 @@ func (siteGen *SiteGenerator) GeneratePostListPage(ctx context.Context, category
 					if dirEntry.IsDir() {
 						continue
 					}
-					fileType := AllowedFileTypes[path.Ext(name)]
+					fileType := AllowedFileTypes[strings.ToLower(path.Ext(name))]
 					if fileType.Has(AttributeImg) {
 						posts[i].Images = append(posts[i].Images, Image{
 							Parent: path.Join("posts", posts[i].Category, posts[i].Name),
@@ -2315,11 +2315,11 @@ func (siteGen *SiteGenerator) rewriteURLs(writer io.Writer, reader io.Reader, ur
 				key, val, moreAttr = tokenizer.TagAttr()
 				if (isImgTag && bytes.Equal(key, []byte("src"))) || (isAnchorTag && bytes.Equal(key, []byte("href"))) {
 					rawURL := string(val)
-					fileType := AllowedFileTypes[path.Ext(rawURL)]
+					fileType := AllowedFileTypes[strings.ToLower(path.Ext(rawURL))]
 					if fileType.Has(AttributeObject) {
 						uri, err := url.Parse(rawURL)
 						if err == nil && uri.Scheme == "" && uri.Host == "" {
-							fileType := AllowedFileTypes[path.Ext(uri.Path)]
+							fileType := AllowedFileTypes[strings.ToLower(path.Ext(uri.Path))]
 							if fileType.Has(AttributeImg) {
 								uri.Scheme = ""
 								uri.Host = siteGen.cdnDomain

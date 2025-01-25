@@ -618,7 +618,7 @@ func (nbrew *Notebrew) importTgz(ctx context.Context, importJobID ID, sitePrefix
 		var fileType FileType
 		var ok bool
 		if header.Typeflag == tar.TypeReg {
-			fileType, ok = AllowedFileTypes[path.Ext(header.Name)]
+			fileType, ok = AllowedFileTypes[strings.ToLower(path.Ext(header.Name))]
 			if !ok {
 				continue
 			}

@@ -633,7 +633,7 @@ func (nbrew *Notebrew) rename(w http.ResponseWriter, r *http.Request, user User,
 				writeResponse(w, r, response)
 				return
 			}
-			fileType := AllowedFileTypes[response.Ext]
+			fileType := AllowedFileTypes[strings.ToLower(response.Ext)]
 			next, _, _ := strings.Cut(tail, "/")
 			if next == "posts" {
 				if fileType.Has(AttributeImg) || fileType.Has(AttributeVideo) {

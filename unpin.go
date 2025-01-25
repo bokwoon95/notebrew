@@ -80,7 +80,7 @@ func (nbrew *Notebrew) unpin(w http.ResponseWriter, r *http.Request, user User, 
 				"baselineJS":            func() template.JS { return template.JS(BaselineJS) },
 				"referer":               func() string { return referer },
 				"getFileType": func(name string) FileType {
-					return AllowedFileTypes[path.Ext(name)]
+					return AllowedFileTypes[strings.ToLower(path.Ext(name))]
 				},
 			}
 			tmpl, err := template.New("unpin.html").Funcs(funcMap).ParseFS(RuntimeFS, "embed/unpin.html")

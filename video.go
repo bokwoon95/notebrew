@@ -72,7 +72,7 @@ func (nbrew *Notebrew) video(w http.ResponseWriter, r *http.Request, user User, 
 				return
 			}
 			defer file.Close()
-			fileType, ok := AllowedFileTypes[path.Ext(filePath)]
+			fileType, ok := AllowedFileTypes[strings.ToLower(path.Ext(filePath))]
 			if !ok {
 				nbrew.NotFound(w, r)
 				return
@@ -120,7 +120,7 @@ func (nbrew *Notebrew) video(w http.ResponseWriter, r *http.Request, user User, 
 			response.CreationTime = CreationTime(absolutePath, fileInfo)
 		}
 		response.FilePath = filePath
-		fileType := AllowedFileTypes[path.Ext(filePath)]
+		fileType := AllowedFileTypes[strings.ToLower(path.Ext(filePath))]
 		response.IsObject = fileType.Has(AttributeObject)
 		response.Size = fileInfo.Size()
 		response.IsDir = fileInfo.IsDir()

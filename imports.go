@@ -138,7 +138,7 @@ func (nbrew *Notebrew) imports(w http.ResponseWriter, r *http.Request, user User
 				return tail
 			},
 			"getFileType": func(name string) FileType {
-				return AllowedFileTypes[path.Ext(name)]
+				return AllowedFileTypes[strings.ToLower(path.Ext(name))]
 			},
 			"generateBreadcrumbLinks": func(sitePrefix, filePath string) template.HTML {
 				var b strings.Builder

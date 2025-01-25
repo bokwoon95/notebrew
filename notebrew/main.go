@@ -13,6 +13,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -334,7 +335,7 @@ func ServeHTTP(nbrew *notebrew.Notebrew) http.HandlerFunc {
 		if r.Method == "GET" || r.Method == "HEAD" {
 			cleanPath := path.Clean(r.URL.Path)
 			if cleanPath != "/" {
-				_, ok := notebrew.AllowedFileTypes[path.Ext(cleanPath)]
+				_, ok := notebrew.AllowedFileTypes[strings.ToLower(path.Ext(cleanPath))]
 				if !ok {
 					cleanPath += "/"
 				}

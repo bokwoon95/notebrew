@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -157,7 +158,7 @@ func (storage *S3ObjectStorage) Put(ctx context.Context, key string, reader io.R
 			storage.Logger.Error(stacktrace.New(err).Error())
 		}
 	}
-	contentType := storage.ContentTypeMap[path.Ext(key)]
+	contentType := storage.ContentTypeMap[strings.ToLower(path.Ext(key))]
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}

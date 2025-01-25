@@ -260,7 +260,7 @@ func (nbrew *Notebrew) uploadfile(w http.ResponseWriter, r *http.Request, user U
 			continue
 		}
 		fileName = filenameSafe(fileName)
-		fileType := AllowedFileTypes[path.Ext(fileName)]
+		fileType := AllowedFileTypes[strings.ToLower(path.Ext(fileName))]
 		if fileType.Has(AttributeImg) && strings.TrimSuffix(fileName, fileType.Ext) == "image" {
 			var timestamp [8]byte
 			now := time.Now()
@@ -268,13 +268,6 @@ func (nbrew *Notebrew) uploadfile(w http.ResponseWriter, r *http.Request, user U
 			binary.BigEndian.PutUint64(timestamp[:], uint64(max(now.Unix(), monotonicCounter.Add(1))))
 			timestampSuffix := strings.TrimLeft(base32Encoding.EncodeToString(timestamp[len(timestamp)-5:]), "0")
 			fileName = "image-" + timestampSuffix + fileType.Ext
-		} else if fileType.Has(AttributeVideo) && strings.TrimSuffix(fileName, fileType.Ext) == "video" {
-			var timestamp [8]byte
-			now := time.Now()
-			monotonicCounter.CompareAndSwap(0, now.Unix())
-			binary.BigEndian.PutUint64(timestamp[:], uint64(max(now.Unix(), monotonicCounter.Add(1))))
-			timestampSuffix := strings.TrimLeft(base32Encoding.EncodeToString(timestamp[len(timestamp)-5:]), "0")
-			fileName = "video-" + timestampSuffix + fileType.Ext
 		}
 		filePath := path.Join(sitePrefix, response.Parent, fileName)
 		_, err = fs.Stat(nbrew.FS.WithContext(r.Context()), filePath)

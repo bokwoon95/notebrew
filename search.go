@@ -103,7 +103,7 @@ func (nbrew *Notebrew) search(w http.ResponseWriter, r *http.Request, user User,
 				return ok
 			},
 			"getFileType": func(name string) FileType {
-				return AllowedFileTypes[path.Ext(name)]
+				return AllowedFileTypes[strings.ToLower(path.Ext(name))]
 			},
 			"joinTerms": func(termsList ...[]string) string {
 				var b strings.Builder

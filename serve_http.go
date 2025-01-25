@@ -146,7 +146,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				nbrew.MethodNotAllowed(w, r)
 				return
 			}
-			fileType, ok := AllowedFileTypes[path.Ext(urlPath)]
+			fileType, ok := AllowedFileTypes[strings.ToLower(path.Ext(urlPath))]
 			if !ok {
 				nbrew.NotFound(w, r)
 				return
@@ -180,7 +180,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			tld := path.Ext(head)
 			if tld != "" {
 				// head is a sitePrefix only if its TLD is not a file extension.
-				_, ok := AllowedFileTypes[tld]
+				_, ok := AllowedFileTypes[strings.ToLower(tld)]
 				if !ok {
 					sitePrefix, urlPath = head, tail
 					head, tail, _ = strings.Cut(urlPath, "/")
@@ -316,7 +316,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				nbrew.postlistJSON(w, r, user, sitePrefix, category)
 				return
 			}
-			fileType := AllowedFileTypes[path.Ext(urlPath)]
+			fileType := AllowedFileTypes[strings.ToLower(path.Ext(urlPath))]
 			if fileType.Has(AttributeImg) {
 				fileInfo, err := fs.Stat(nbrew.FS.WithContext(r.Context()), path.Join(sitePrefix, urlPath))
 				if err != nil {
@@ -462,7 +462,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "404 Not Found", http.StatusNotFound)
 				return
 			}
-			fileType, ok := AllowedFileTypes[path.Ext(urlPath)]
+			fileType, ok := AllowedFileTypes[strings.ToLower(path.Ext(urlPath))]
 			if !ok || !fileType.Has(AttributeObject) || fileType.Ext == ".tgz" {
 				http.Error(w, "404 Not Found", http.StatusNotFound)
 				return
@@ -544,7 +544,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			custom404(w, r, nbrew.FS, sitePrefix)
 			return
 		}
-		fileType, ok = AllowedFileTypes[ext]
+		fileType, ok = AllowedFileTypes[strings.ToLower(ext)]
 		if ok {
 			filePath = path.Join(sitePrefix, "output", urlPath)
 		} else {

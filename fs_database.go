@@ -241,7 +241,7 @@ func (fsys *DatabaseFS) Open(name string) (fs.File, error) {
 	}
 	var fileType FileType
 	if ext := path.Ext(name); ext != "" {
-		fileType = AllowedFileTypes[ext]
+		fileType = AllowedFileTypes[strings.ToLower(ext)]
 	}
 	file, err := sq.FetchOne(fsys.ctx, fsys.DB, sq.Query{
 		Dialect: fsys.Dialect,
@@ -547,7 +547,7 @@ func (fsys *DatabaseFS) OpenWriter(name string, _ fs.FileMode) (io.WriteCloser, 
 	}
 	var fileType FileType
 	if ext := path.Ext(name); ext != "" {
-		fileType = AllowedFileTypes[ext]
+		fileType = AllowedFileTypes[strings.ToLower(ext)]
 	}
 	now := time.Now().UTC()
 	modTime := now
@@ -1259,7 +1259,7 @@ func (fsys *DatabaseFS) Remove(name string) error {
 		return &fs.PathError{Op: "remove", Path: name, Err: syscall.ENOTEMPTY}
 	}
 	// Delete the underlying object from object storage.
-	fileType := AllowedFileTypes[path.Ext(name)]
+	fileType := AllowedFileTypes[strings.ToLower(path.Ext(name))]
 	if fileType.Has(AttributeObject) {
 		err = fsys.ObjectStorage.Delete(fsys.ctx, file.fileID.String()+path.Ext(file.filePath))
 		if err != nil {
@@ -1808,7 +1808,7 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 			return stacktrace.New(err)
 		}
 		ext := path.Ext(srcName)
-		fileType := AllowedFileTypes[ext]
+		fileType := AllowedFileTypes[strings.ToLower(ext)]
 		if fileType.Has(AttributeObject) {
 			err := fsys.ObjectStorage.Copy(fsys.ctx, srcFileID.String()+ext, destFileID.String()+ext)
 			if err != nil {
@@ -1912,7 +1912,7 @@ func (fsys *DatabaseFS) Copy(srcName, destName string) error {
 		if !srcFile.IsDir {
 			totalSize += srcFile.Size
 			ext := path.Ext(srcFile.FilePath)
-			fileType := AllowedFileTypes[ext]
+			fileType := AllowedFileTypes[strings.ToLower(ext)]
 			if fileType.Has(AttributeObject) {
 				wg.Add(1)
 				go func() {
@@ -2108,7 +2108,7 @@ func IsForeignKeyViolation(dialect string, errorCode string) bool {
 // form to save space and also to save CPU cycles as we don't have to gzip
 // again when serving it later.
 func IsFulltextIndexed(filePath string) bool {
-	fileType, ok := AllowedFileTypes[path.Ext(filePath)]
+	fileType, ok := AllowedFileTypes[strings.ToLower(path.Ext(filePath))]
 	if !ok {
 		return false
 	}

@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -499,7 +500,7 @@ func (gui *GUI) ServerLoop(configDir string) {
 					if r.Method == "GET" || r.Method == "HEAD" {
 						cleanPath := path.Clean(r.URL.Path)
 						if cleanPath != "/" {
-							_, ok := notebrew.AllowedFileTypes[path.Ext(cleanPath)]
+							_, ok := notebrew.AllowedFileTypes[strings.ToLower(path.Ext(cleanPath))]
 							if !ok {
 								cleanPath += "/"
 							}

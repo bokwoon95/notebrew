@@ -387,7 +387,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, user U
 				response.Name = strings.TrimLeft(base32Encoding.EncodeToString(timestamp[len(timestamp)-5:]), "0")
 			}
 			ext := path.Ext(response.Name)
-			if _, ok := AllowedFileTypes[ext]; ok {
+			if _, ok := AllowedFileTypes[strings.ToLower(ext)]; ok {
 				response.Name = strings.TrimSuffix(response.Name, ext)
 			}
 			switch response.Ext {
@@ -428,7 +428,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, user U
 				}
 			}
 			ext := path.Ext(response.Name)
-			if _, ok := AllowedFileTypes[ext]; ok {
+			if _, ok := AllowedFileTypes[strings.ToLower(ext)]; ok {
 				response.Name = strings.TrimSuffix(response.Name, ext)
 			}
 			switch response.Ext {
@@ -664,7 +664,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, user U
 					continue
 				}
 				fileName = filenameSafe(fileName)
-				fileType := AllowedFileTypes[path.Ext(fileName)]
+				fileType := AllowedFileTypes[strings.ToLower(path.Ext(fileName))]
 				switch head {
 				case "pages":
 					if !fileType.Has(AttributeImg) && !fileType.Has(AttributeVideo) && fileType.Ext != ".css" && fileType.Ext != ".js" && fileType.Ext != ".md" {
@@ -796,14 +796,6 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, user U
 				} else if fileType.Has(AttributeVideo) {
 					if user.UserFlags["NoUploadVideo"] {
 						continue
-					}
-					if strings.TrimSuffix(fileName, fileType.Ext) == "video" {
-						var timestamp [8]byte
-						now := time.Now()
-						monotonicCounter.CompareAndSwap(0, now.Unix())
-						binary.BigEndian.PutUint64(timestamp[:], uint64(max(now.Unix(), monotonicCounter.Add(1))))
-						timestampSuffix := strings.TrimLeft(base32Encoding.EncodeToString(timestamp[len(timestamp)-5:]), "0")
-						fileName = "image-" + timestampSuffix + fileType.Ext
 					}
 					filePath := path.Join(outputDir, fileName)
 					if nbrew.VideoCmd == "" {

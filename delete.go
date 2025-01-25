@@ -79,7 +79,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, user User, 
 				"baselineJS":            func() template.JS { return template.JS(BaselineJS) },
 				"referer":               func() string { return referer },
 				"getFileType": func(name string) FileType {
-					return AllowedFileTypes[path.Ext(name)]
+					return AllowedFileTypes[strings.ToLower(path.Ext(name))]
 				},
 			}
 			tmpl, err := template.New("delete.html").Funcs(funcMap).ParseFS(RuntimeFS, "embed/delete.html")
@@ -459,7 +459,7 @@ func (nbrew *Notebrew) delet(w http.ResponseWriter, r *http.Request, user User, 
 				case "output":
 					if !isDir {
 						next, _, _ := strings.Cut(tail, "/")
-						fileType := AllowedFileTypes[path.Ext(name)]
+						fileType := AllowedFileTypes[strings.ToLower(path.Ext(name))]
 						if next == "posts" {
 							if fileType.Has(AttributeImg) || fileType.Has(AttributeVideo) {
 								parentPost := tail + ".md"

@@ -70,7 +70,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 		PostRedirectGet   map[string]any    `json:"postRedirectGet"`
 	}
 
-	fileType, ok := AllowedFileTypes[path.Ext(filePath)]
+	fileType, ok := AllowedFileTypes[strings.ToLower(path.Ext(filePath))]
 	if !ok {
 		nbrew.NotFound(w, r)
 		return
@@ -150,7 +150,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 		}
 
 		if r.Form.Has("raw") {
-			fileType, ok := AllowedFileTypes[path.Ext(filePath)]
+			fileType, ok := AllowedFileTypes[strings.ToLower(path.Ext(filePath))]
 			if !ok {
 				nbrew.NotFound(w, r)
 				return
@@ -311,7 +311,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 						continue
 					}
 					name := dirEntry.Name()
-					fileType := AllowedFileTypes[path.Ext(name)]
+					fileType := AllowedFileTypes[strings.ToLower(path.Ext(name))]
 					if fileType.Has(AttributeImg) || fileType.Has(AttributeVideo) || fileType.Ext == ".css" || fileType.Ext == ".js" || fileType.Ext == ".md" {
 						fileInfo, err := dirEntry.Info()
 						if err != nil {
@@ -469,7 +469,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 						continue
 					}
 					name := dirEntry.Name()
-					fileType := AllowedFileTypes[path.Ext(name)]
+					fileType := AllowedFileTypes[strings.ToLower(path.Ext(name))]
 					if fileType.Has(AttributeImg) || fileType.Has(AttributeVideo) {
 						fileInfo, err := dirEntry.Info()
 						if err != nil {
@@ -587,7 +587,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 				return tail
 			},
 			"getFileType": func(name string) FileType {
-				return AllowedFileTypes[path.Ext(name)]
+				return AllowedFileTypes[strings.ToLower(path.Ext(name))]
 			},
 			"generateBreadcrumbLinks": func(sitePrefix, filePath string) template.HTML {
 				var b strings.Builder
@@ -846,7 +846,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 						continue
 					}
 					fileName = filenameSafe(fileName)
-					fileType := AllowedFileTypes[path.Ext(fileName)]
+					fileType := AllowedFileTypes[strings.ToLower(path.Ext(fileName))]
 					switch head {
 					case "pages":
 						if !fileType.Has(AttributeImg) && !fileType.Has(AttributeVideo) && fileType.Ext != ".css" && fileType.Ext != ".js" && fileType.Ext != ".md" {
@@ -989,14 +989,6 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 					} else if fileType.Has(AttributeVideo) {
 						if user.UserFlags["NoUploadVideo"] {
 							continue
-						}
-						if strings.TrimSuffix(fileName, fileType.Ext) == "video" {
-							var timestamp [8]byte
-							now := time.Now()
-							monotonicCounter.CompareAndSwap(0, now.Unix())
-							binary.BigEndian.PutUint64(timestamp[:], uint64(max(now.Unix(), monotonicCounter.Add(1))))
-							timestampSuffix := strings.TrimLeft(base32Encoding.EncodeToString(timestamp[len(timestamp)-5:]), "0")
-							fileName = "image-" + timestampSuffix + fileType.Ext
 						}
 						filePath := path.Join(outputDir, fileName)
 						_, err := fs.Stat(nbrew.FS.WithContext(r.Context()), filePath)
