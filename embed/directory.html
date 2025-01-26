@@ -401,9 +401,9 @@
             {{- end }}
           {{- else if $fileType.IsVideo }}
             {{- if and $.CDNDomain $.IsDatabaseFS }}
-            <video src='//{{ $.CDNDomain }}/{{ $file.FileID }}{{ ext $file.Name }}' class='h3 w3 mr1 object-cover' preload='metadata' muted onloadeddata='this.currentTime=0.1'></video>
+            <video src='//{{ $.CDNDomain }}/{{ $file.FileID }}{{ ext $file.Name }}' class='h3 w3 mr1 object-cover' preload='metadata' muted></video>
             {{- else }}
-            <video src='/{{ join "files" $.SitePrefix $file.Parent $file.Name }}?raw' class='h3 w3 mr1 object-cover'preload='metadata' muted onloadeddata='this.currentTime=0.1'></video>
+            <video src='/{{ join "files" $.SitePrefix $file.Parent $file.Name }}?raw' class='h3 w3 mr1 object-cover'preload='metadata' muted></video>
             {{- end }}
           {{- end }}
           <a href='/{{ join "files" $.SitePrefix $file.Parent $file.Name }}{{ if $file.IsDir }}/{{ end }}' class='flex-wrap'>{{ if eq $file.Parent $.FilePath }}{{ $file.Name }}{{ else }}/{{ join $file.Parent $file.Name }}{{ end }}{{ if $file.IsDir }}/{{ end }}</a>
@@ -488,9 +488,9 @@
             {{- end }}
           {{- else if $fileType.IsVideo }}
             {{- if and $.CDNDomain $.IsDatabaseFS }}
-            <video src='//{{ $.CDNDomain }}/{{ $file.FileID }}{{ ext $file.Name }}' class='h3 w3 mr1 object-cover' preload='metadata' muted onloadeddata='this.currentTime=0.1'></video>
+            <video src='//{{ $.CDNDomain }}/{{ $file.FileID }}{{ ext $file.Name }}' class='h3 w3 mr1 object-cover' preload='metadata' muted></video>
             {{- else }}
-            <video src='/{{ join "files" $.SitePrefix $file.Parent $file.Name }}?raw' class='h3 w3 mr1 object-cover'preload='metadata' muted onloadeddata='this.currentTime=0.1'></video>
+            <video src='/{{ join "files" $.SitePrefix $file.Parent $file.Name }}?raw' class='h3 w3 mr1 object-cover'preload='metadata' muted></video>
             {{- end }}
           {{- end }}
           <a href='/{{ join "files" $.SitePrefix $file.Parent $file.Name }}{{ if $file.IsDir }}/{{ end }}' class='flex-wrap'>{{ $file.Name }}{{ if $file.IsDir }}/{{ end }}</a>
