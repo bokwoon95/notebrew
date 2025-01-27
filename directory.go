@@ -729,7 +729,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				return nil
@@ -758,7 +758,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					},
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				if hasPreviousFile {
 					<-waitFiles
@@ -816,7 +816,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					if errors.Is(err, sql.ErrNoRows) {
 						return nil
 					}
-					return err
+					return stacktrace.New(err)
 				}
 				uri := &url.URL{
 					Scheme: scheme,
@@ -875,7 +875,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				if len(response.Files) > response.Limit {
@@ -921,7 +921,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					},
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				if hasPreviousFile {
 					<-waitFiles
@@ -986,7 +986,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				if len(response.Files) > response.Limit {
@@ -1046,7 +1046,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					if errors.Is(err, sql.ErrNoRows) {
 						return nil
 					}
-					return err
+					return stacktrace.New(err)
 				}
 				uri := &url.URL{
 					Scheme: scheme,
@@ -1101,7 +1101,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				if len(response.Files) > response.Limit {
@@ -1142,7 +1142,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					)
 					order = sq.Expr("mod_time ASC, file_path ASC")
 				} else {
-					condition = sq.Expr("(mod_time, file_path) > ({beforeEdited}, {before}) AND (mod_time, file_path) <= ({fromEdited}, {from})",
+					condition = sq.Expr("(mod_time, file_path) > ({beforeTime}, {before}) AND (mod_time, file_path) <= ({fromEdited}, {from})",
 						sq.TimeParam("beforeEdited", beforeEdited),
 						sq.StringParam("before", path.Join(sitePrefix, filePath, response.Before)),
 						sq.TimeParam("fromEdited", fromEdited),
@@ -1175,7 +1175,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				return nil
@@ -1210,7 +1210,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					},
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				if hasPreviousFile {
 					<-waitFiles
@@ -1274,7 +1274,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					if errors.Is(err, sql.ErrNoRows) {
 						return nil
 					}
-					return err
+					return stacktrace.New(err)
 				}
 				uri := &url.URL{
 					Scheme: scheme,
@@ -1339,7 +1339,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				if len(response.Files) > response.Limit {
@@ -1391,7 +1391,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					},
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				if hasPreviousFile {
 					<-waitFiles
@@ -1462,7 +1462,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				if len(response.Files) > response.Limit {
@@ -1528,7 +1528,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					if errors.Is(err, sql.ErrNoRows) {
 						return nil
 					}
-					return err
+					return stacktrace.New(err)
 				}
 				uri := &url.URL{
 					Scheme: scheme,
@@ -1582,7 +1582,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				if len(response.Files) > response.Limit {
@@ -1623,7 +1623,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					)
 					order = sq.Expr("creation_time ASC, file_path ASC")
 				} else {
-					condition = sq.Expr("(creation_time, file_path) > ({beforeCreated}, {before}) AND (creation_time, file_path) <= ({fromCreated}, {from})",
+					condition = sq.Expr("(creation_time, file_path) > ({beforeTime}, {before}) AND (creation_time, file_path) <= ({fromCreated}, {from})",
 						sq.TimeParam("beforeCreated", beforeCreated),
 						sq.StringParam("before", path.Join(sitePrefix, filePath, response.Before)),
 						sq.TimeParam("fromCreated", fromCreated),
@@ -1656,7 +1656,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				return nil
@@ -1691,7 +1691,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					},
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				if hasPreviousFile {
 					<-waitFiles
@@ -1755,7 +1755,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					if errors.Is(err, sql.ErrNoRows) {
 						return nil
 					}
-					return err
+					return stacktrace.New(err)
 				}
 				uri := &url.URL{
 					Scheme: scheme,
@@ -1820,7 +1820,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				if len(response.Files) > response.Limit {
@@ -1872,7 +1872,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					},
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				if hasPreviousFile {
 					<-waitFiles
@@ -1943,7 +1943,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				if len(response.Files) > response.Limit {
@@ -2009,7 +2009,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					if errors.Is(err, sql.ErrNoRows) {
 						return nil
 					}
-					return err
+					return stacktrace.New(err)
 				}
 				uri := &url.URL{
 					Scheme: scheme,
@@ -2063,7 +2063,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				if len(response.Files) > response.Limit {
@@ -2137,7 +2137,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				return nil
@@ -2172,7 +2172,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					},
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				if hasPreviousFile {
 					<-waitFiles
@@ -2236,7 +2236,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					if errors.Is(err, sql.ErrNoRows) {
 						return nil
 					}
-					return err
+					return stacktrace.New(err)
 				}
 				uri := &url.URL{
 					Scheme: scheme,
@@ -2301,7 +2301,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				if len(response.Files) > response.Limit {
@@ -2353,7 +2353,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					},
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				if hasPreviousFile {
 					<-waitFiles
@@ -2424,7 +2424,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				if len(response.Files) > response.Limit {
@@ -2490,7 +2490,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					if errors.Is(err, sql.ErrNoRows) {
 						return nil
 					}
-					return err
+					return stacktrace.New(err)
 				}
 				uri := &url.URL{
 					Scheme: scheme,
@@ -2544,7 +2544,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					}
 				})
 				if err != nil {
-					return err
+					return stacktrace.New(err)
 				}
 				response.Files = files
 				if len(response.Files) > response.Limit {
