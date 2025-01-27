@@ -46,9 +46,9 @@
         {{- end }}
       {{- else if $fileType.IsVideo }}
         {{- if and $.CDNDomain $.IsDatabaseFS }}
-        <video src='//{{ $.CDNDomain }}/{{ $file.FileID }}{{ ext $file.Name }}' class='h3 w3 mr1 object-cover' preload='metadata' muted{{ if le $file.Size 2000000 }} autoplay loop playsinline{{ end }}></video>
+        <video src='//{{ $.CDNDomain }}/{{ $file.FileID }}{{ ext $file.Name }}' class='h3 w3 mr1 object-cover' preload='metadata' muted></video>
         {{- else }}
-        <video src='/{{ join "files" $.SitePrefix $.Parent $file.Name }}?raw' class='h3 w3 mr1 object-cover'preload='metadata' muted{{ if le $file.Size 2000000 }} autoplay loop playsinline{{ end }}></video>
+        <video src='/{{ join "files" $.SitePrefix $.Parent $file.Name }}?raw' class='h3 w3 mr1 object-cover'preload='metadata' muted></video>
         {{- end }}
       {{- end }}
       <a href='/{{ join "files" $.SitePrefix $.Parent $file.Name }}{{ if $file.IsDir }}/{{ end }}'>{{ $file.Name }}{{ if $file.IsDir }}/{{ end }}</a>
