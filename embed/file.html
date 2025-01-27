@@ -463,6 +463,12 @@ It's a [cat](https://en.wikipedia.org/wiki/Cat)</pre>
                 {{- else }}
                 <img alt='{{ $asset.AltText }}' src='/{{ join "files" $.SitePrefix $asset.Parent $asset.Name }}?raw' class='h3 w3 mr1 object-cover' loading='lazy'>
                 {{- end }}
+              {{- else if $fileType.IsVideo }}
+                {{- if and $.CDNDomain $.IsDatabaseFS }}
+                <video src='//{{ $.CDNDomain }}/{{ $asset.FileID }}{{ ext $asset.Name }}' class='h3 w3 mr1 object-cover' preload='metadata' muted{{ if le $asset.Size 2000000 }} autoplay loop playsinline{{ end }}></video>
+                {{- else }}
+                <video src='/{{ join "files" $.SitePrefix $asset.Parent $asset.Name }}?raw' class='h3 w3 mr1 object-cover'preload='metadata' muted{{ if le $asset.Size 2000000 }} autoplay loop playsinline{{ end }}></video>
+                {{- end }}
               {{- end }}
               <a href='/{{ join "files" $.SitePrefix $asset.Parent $asset.Name }}' class='flex-wrap'>{{ $asset.Name }}</a>
               <span class='ml2 f6 mid-gray'>{{ humanReadableFileSize $asset.Size }}</span>
@@ -511,6 +517,12 @@ It's a [cat](https://en.wikipedia.org/wiki/Cat)</pre>
                 <img alt='{{ $asset.AltText }}' src='//{{ $.CDNDomain }}/{{ $asset.FileID }}{{ ext $asset.Name }}' class='h3 w3 mr1 object-cover' loading='lazy'>
                 {{- else }}
                 <img alt='{{ $asset.AltText }}' src='/{{ join "files" $.SitePrefix $asset.Parent $asset.Name }}?raw' class='h3 w3 mr1 object-cover' loading='lazy'>
+                {{- end }}
+              {{- else if $fileType.IsVideo }}
+                {{- if and $.CDNDomain $.IsDatabaseFS }}
+                <video src='//{{ $.CDNDomain }}/{{ $asset.FileID }}{{ ext $asset.Name }}' class='h3 w3 mr1 object-cover' preload='metadata' muted{{ if le $asset.Size 2000000 }} autoplay loop playsinline{{ end }}></video>
+                {{- else }}
+                <video src='/{{ join "files" $.SitePrefix $asset.Parent $asset.Name }}?raw' class='h3 w3 mr1 object-cover'preload='metadata' muted{{ if le $asset.Size 2000000 }} autoplay loop playsinline{{ end }}></video>
                 {{- end }}
               {{- end }}
               <a href='/{{ join "files" $.SitePrefix $asset.Parent $asset.Name }}' class='flex-wrap'>{{ $asset.Name }}</a>
