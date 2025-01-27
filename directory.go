@@ -1142,7 +1142,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					)
 					order = sq.Expr("mod_time ASC, file_path ASC")
 				} else {
-					condition = sq.Expr("(mod_time, file_path) > ({beforeTime}, {before}) AND (mod_time, file_path) <= ({fromEdited}, {from})",
+					condition = sq.Expr("(mod_time, file_path) > ({beforeEdited}, {before}) AND (mod_time, file_path) <= ({fromEdited}, {from})",
 						sq.TimeParam("beforeEdited", beforeEdited),
 						sq.StringParam("before", path.Join(sitePrefix, filePath, response.Before)),
 						sq.TimeParam("fromEdited", fromEdited),
@@ -1623,7 +1623,7 @@ func (nbrew *Notebrew) directory(w http.ResponseWriter, r *http.Request, user Us
 					)
 					order = sq.Expr("creation_time ASC, file_path ASC")
 				} else {
-					condition = sq.Expr("(creation_time, file_path) > ({beforeTime}, {before}) AND (creation_time, file_path) <= ({fromCreated}, {from})",
+					condition = sq.Expr("(creation_time, file_path) > ({beforeCreated}, {before}) AND (creation_time, file_path) <= ({fromCreated}, {from})",
 						sq.TimeParam("beforeCreated", beforeCreated),
 						sq.StringParam("before", path.Join(sitePrefix, filePath, response.Before)),
 						sq.TimeParam("fromCreated", fromCreated),
