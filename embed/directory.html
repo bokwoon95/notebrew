@@ -488,7 +488,7 @@
             {{- end }}
           {{- else if $fileType.IsVideo }}
             {{- if and $.CDNDomain $.IsDatabaseFS }}
-            <video src='//{{ $.CDNDomain }}/{{ $file.FileID }}{{ ext $file.Name }}' class='h3 w3 mr1 object-cover' preload='metadata' muted>{{ if le $file.Size 2000000 }} autoplay loop playsinline{{ end }}</video>
+            <video src='//{{ $.CDNDomain }}/{{ $file.FileID }}{{ ext $file.Name }}' class='h3 w3 mr1 object-cover' preload='metadata' muted{{ if le $file.Size 2000000 }} autoplay loop playsinline{{ end }}></video>
             {{- else }}
             <video src='/{{ join "files" $.SitePrefix $file.Parent $file.Name }}?raw' class='h3 w3 mr1 object-cover'preload='metadata' muted{{ if le $file.Size 2000000 }} autoplay loop playsinline{{ end }}></video>
             {{- end }}
