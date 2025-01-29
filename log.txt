@@ -75,6 +75,12 @@ cli/stop_cmd.go
 notebrew/main.go
 gui/main.go
 
+TODO: /files/lookup/?fileID=abcde => [{"fileID":"","filePath":"","creationTime":"",...}]
+    - when smart client enters a directory, it loads entries from its local database and makes a call to directories.go at the same time using the same view params.
+    - for each deleted file, it calls files/lookup/fileID=xxxx in order to find if the file was deleted or just moved. if it was deleted, move it to the trash. if it was moved, create a new file entry.
+        - if the deleted file is a folder, oh my god we need to recurse into the folder and do the same for *all* its children. recursively. this will take up a lot of time for what was supposed to be a simple directory visit. hopefully we will rarely encounter this because most missing files should be straight up deleted.
+    - for each added file, it adds a new file entry to the local database (but with NULL content).
+
 TODO: change sq to use Go 1.23's range over iterator funcs (we will need to drastically change the error handling of all code that uses a cursor).
 TODO: add database test scaffolding (you don't need to write all tests for all handlers yet, but you need to establish what a test scaffolding that goes through all database dialects would look like).
 TODO: add ability to showcase blogs on the site? add ability to showcase posts and vote on posts?
