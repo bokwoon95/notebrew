@@ -256,6 +256,14 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, user U
 				nbrew.BadRequest(w, r, err)
 				return
 			}
+			if s := r.Form.Get("fileID"); s != "" {
+				fileID, err := ParseID(s)
+				if err != nil {
+					nbrew.BadRequest(w, r, err)
+					return
+				}
+				request.FileID = fileID
+			}
 			request.Parent = r.Form.Get("parent")
 			request.Name = r.Form.Get("name")
 			request.Ext = r.Form.Get("ext")
@@ -268,7 +276,7 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, user U
 				return
 			}
 			var maxBytesErr *http.MaxBytesError
-			for i := 0; i < 4; i++ {
+			for i := 0; i < 5; i++ {
 				part, err := reader.NextPart()
 				if err != nil {
 					if err == io.EOF {
@@ -291,6 +299,15 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, user U
 				}
 				formName := part.FormName()
 				switch formName {
+				case "fileID":
+					if s := b.String(); s != "" {
+						fileID, err := ParseID(s)
+						if err != nil {
+							nbrew.BadRequest(w, r, err)
+							return
+						}
+						request.FileID = fileID
+					}
 				case "parent":
 					request.Parent = b.String()
 				case "name":
