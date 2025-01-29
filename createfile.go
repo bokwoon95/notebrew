@@ -32,10 +32,11 @@ var defaultMarkdown = goldmark.New(goldmark.WithParserOptions(parser.WithAttribu
 
 func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, user User, sitePrefix string) {
 	type Request struct {
-		Parent  string
-		Name    string
-		Ext     string
-		Content string
+		FileID  ID     `json:"fileID"`
+		Parent  string `json:"parent"`
+		Name    string `json:"name"`
+		Ext     string `json:"ext"`
+		Content string `json:"content"`
 	}
 	type Response struct {
 		ContentBaseURL    string            `json:"contentBaseURL"`
@@ -539,7 +540,17 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, user U
 		}
 		writerCtx, cancelWriter := context.WithCancel(r.Context())
 		defer cancelWriter()
-		writer, err := nbrew.FS.WithContext(writerCtx).OpenWriter(path.Join(sitePrefix, response.Parent, response.Name+response.Ext), 0644)
+		fsys := nbrew.FS.WithContext(writerCtx)
+		if !request.FileID.IsZero() {
+			if v, ok := fsys.(interface {
+				WithValues(map[string]any) FS
+			}); ok {
+				fsys = v.WithValues(map[string]any{
+					"fileID": request.FileID,
+				})
+			}
+		}
+		writer, err := fsys.OpenWriter(path.Join(sitePrefix, response.Parent, response.Name+response.Ext), 0644)
 		if err != nil {
 			nbrew.GetLogger(r.Context()).Error(err.Error())
 			nbrew.InternalServerError(w, r, err)

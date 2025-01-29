@@ -17,6 +17,7 @@ import (
 
 func (nbrew *Notebrew) createfolder(w http.ResponseWriter, r *http.Request, user User, sitePrefix string) {
 	type Request struct {
+		FileID ID     `json:"fileID"`
 		Parent string `json:"parent"`
 		Name   string `json:"name"`
 	}

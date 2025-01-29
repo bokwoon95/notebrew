@@ -98,6 +98,8 @@ type DatabaseFS struct {
 	// values is a key-value store containing values used by some filesystem
 	// operations. Currently, the following values are recognized:
 	//
+	// - "fileID"       => ID        (sets the fileID for files created by OpenWriter/Mkdir)
+	//
 	// - "modTime"      => time.Time (sets the modTime for files created by OpenWriter/Mkdir/MkdirAll)
 	//
 	// - "creationTime" => time.Time (sets the creationTime for files created by OpenWriter/Mkdir/MkdirAll)
@@ -154,6 +156,8 @@ func (fsys *DatabaseFS) WithContext(ctx context.Context) FS {
 // WithValues returns a new FS with the given values.
 //
 // Currently, the following values are recognized:
+//
+// - "fileID"       => ID        (sets the fileID for files created by OpenWriter/Mkdir)
 //
 // - "modTime"      => time.Time (sets the modTime for files created by OpenWriter/Mkdir/MkdirAll)
 //
@@ -602,7 +606,11 @@ func (fsys *DatabaseFS) OpenWriter(name string, _ fs.FileMode) (io.WriteCloser, 
 			if !errors.Is(err, sql.ErrNoRows) {
 				return nil, stacktrace.New(err)
 			}
-			file.fileID = NewID()
+			if value, ok := fsys.values["fileID"].(ID); ok && !value.IsZero() {
+				file.fileID = value
+			} else {
+				file.fileID = NewID()
+			}
 		} else {
 			if result.isDir {
 				return nil, &fs.PathError{Op: "openwriter", Path: name, Err: syscall.EISDIR}
@@ -654,7 +662,11 @@ func (fsys *DatabaseFS) OpenWriter(name string, _ fs.FileMode) (io.WriteCloser, 
 			return nil, &fs.PathError{Op: "openwriter", Path: name, Err: fs.ErrNotExist}
 		}
 		if file.fileID.IsZero() {
-			file.fileID = NewID()
+			if value, ok := fsys.values["fileID"].(ID); ok && !value.IsZero() {
+				file.fileID = value
+			} else {
+				file.fileID = NewID()
+			}
 		}
 	}
 	// Prepare the underlying writers.
@@ -1023,6 +1035,12 @@ func (fsys *DatabaseFS) Mkdir(name string, _ fs.FileMode) error {
 	if value, ok := fsys.values["creationTime"].(time.Time); ok {
 		creationTime = value
 	}
+	var fileID ID
+	if value, ok := fsys.values["fileID"].(ID); ok && !value.IsZero() {
+		fileID = value
+	} else {
+		fileID = NewID()
+	}
 	parentDir := path.Dir(name)
 	if parentDir == "." {
 		_, err := sq.Exec(fsys.ctx, fsys.DB, sq.Query{
@@ -1030,7 +1048,7 @@ func (fsys *DatabaseFS) Mkdir(name string, _ fs.FileMode) error {
 			Format: "INSERT INTO files (file_id, file_path, mod_time, creation_time, is_dir)" +
 				" VALUES ({fileID}, {filePath}, {modTime}, {creationTime}, TRUE)",
 			Values: []any{
-				sq.UUIDParam("fileID", NewID()),
+				sq.UUIDParam("fileID", fileID),
 				sq.StringParam("filePath", name),
 				sq.TimeParam("modTime", modTime),
 				sq.TimeParam("creationTime", creationTime),
@@ -1067,7 +1085,7 @@ func (fsys *DatabaseFS) Mkdir(name string, _ fs.FileMode) error {
 			Format: "INSERT INTO files (file_id, parent_id, file_path, mod_time, creation_time, is_dir)" +
 				" VALUES ({fileID}, {parentID}, {filePath}, {modTime}, {creationTime}, TRUE)",
 			Values: []any{
-				sq.UUIDParam("fileID", NewID()),
+				sq.UUIDParam("fileID", fileID),
 				sq.UUIDParam("parentID", parentID),
 				sq.StringParam("filePath", name),
 				sq.TimeParam("modTime", modTime),
