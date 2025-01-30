@@ -240,11 +240,9 @@ func (nbrew *Notebrew) deletesession(w http.ResponseWriter, r *http.Request, use
 			sessionTokenHashes = append(sessionTokenHashes, lowerBound, upperBound)
 		}
 		for i := 0; i+1 < len(sessionTokenHashes); i += 2 {
-			var err error
-			var sessions []Session
 			lowerBound, upperBound := sessionTokenHashes[i], sessionTokenHashes[i+1]
 			if nbrew.Dialect == "sqlite" || nbrew.Dialect == "postgres" {
-				sessions, err = sq.FetchAll(r.Context(), nbrew.DB, sq.Query{
+				sessions, err := sq.FetchAll(r.Context(), nbrew.DB, sq.Query{
 					Dialect: nbrew.Dialect,
 					Format: "DELETE FROM session" +
 						" WHERE user_id = {userID}" +
