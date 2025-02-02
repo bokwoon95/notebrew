@@ -62,7 +62,7 @@
       {{- if and $.IP4.IsValid $.IP6.IsValid }}
       <p class='b'>If you cannot add CNAME records, you can add IP addresses instead.</p>
       <p><span class='b'>IP address:</span> {{ $.IP4.String }}</p>
-      <p><span class='b'>IPv6 address:</span> {{ $.IP4.String }}</p>
+      <p><span class='b'>IPv6 address:</span> {{ $.IP6.String }}</p>
       <div class='overflow-x-auto'>
         <table class='collapse w-100'>
           <tr class='bb h2 tc'>
