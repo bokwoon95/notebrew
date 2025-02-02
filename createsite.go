@@ -36,6 +36,7 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, user U
 		CMSDomain            string          `json:"cmsDomain"`
 		ContentDomain        string          `json:"contentDomain"`
 		IP4                  netip.Addr      `json:"ip4"`
+		IP6                  netip.Addr      `json:"ip6"`
 		ValidateCustomDomain bool            `json:"validateCustomDomain"`
 		UserID               ID              `json:"userID"`
 		Username             string          `json:"username"`
@@ -128,6 +129,10 @@ func (nbrew *Notebrew) createsite(w http.ResponseWriter, r *http.Request, user U
 			nbrew.GetLogger(r.Context()).Error(err.Error())
 		}
 		response.ContentDomain = nbrew.ContentDomain
+		if len(nbrew.ProxyConfig.RealIPHeaders) == 0 && len(nbrew.ProxyConfig.ProxyIPs) == 0 {
+			response.IP4 = nbrew.IP4
+			response.IP6 = nbrew.IP6
+		}
 		response.ValidateCustomDomain = nbrew.Port == 443
 		response.UserID = user.UserID
 		response.Username = user.Username

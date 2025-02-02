@@ -59,8 +59,10 @@
       </table>
     </div>
     <p>If you have only just created it, please wait for a few minutes for it to take effect. Make sure it is reachable by visiting visiting <a href='https://dnschecker.org/#CNAME'>https://dnschecker.org/#CNAME</a> and affirming that your custom domain points to <code>www.{{ $.ContentDomain }}.</code></p>
-      {{- if eq $.CMSDomain $.ContentDomain }}
-      <p class='b'>If your DNS provider forbids you from setting CNAME records, you can set the following A record instead.</p>
+      {{- if and $.IP4.IsValid $.IP6.IsValid }}
+      <p class='b'>If you cannot add CNAME records, you can add IP addresses instead.</p>
+      <p><span class='b'>IP address:</span> {{ $.IP4.String }}</p>
+      <p><span class='b'>IPv6 address:</span> {{ $.IP4.String }}</p>
       <div class='overflow-x-auto'>
         <table class='collapse w-100'>
           <tr class='bb h2 tc'>
@@ -73,6 +75,12 @@
             <td class='pa2'>A</td>
             <td class='pa2'>@</td>
             <td class='pa2'>{{ $.IP4.String }}</td>
+            <td class='pa2'>auto (or 3600 seconds/1 hour)</td>
+          </tr>
+          <tr class='bb tc'>
+            <td class='pa2'>AAAA</td>
+            <td class='pa2'>@</td>
+            <td class='pa2'>{{ $.IP6.String }}</td>
             <td class='pa2'>auto (or 3600 seconds/1 hour)</td>
           </tr>
         </table>
