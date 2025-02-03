@@ -510,6 +510,14 @@ func (siteGen *SiteGenerator) parseTemplate(ctx context.Context, name, text stri
 	}
 	finalTemplate := template.New(name).Funcs(siteGen.funcMap)
 	for i, externalTemplate := range externalTemplates {
+		if externalTemplate == nil {
+			// Got a nil pointer dereference one time (externalTemplate ==
+			// nil), could not replicate it. Should not be possible. If the
+			// errgroup returned no errors, every template pointer in the
+			// externalTemplates slice should be populated. If externalTemplate
+			// is somehow nil, return it as an error and include the context.
+			return nil, stacktrace.New(fmt.Errorf("for some reason, external template %q as mentioned in %q is nil", externalNames[i], name))
+		}
 		for _, tmpl := range externalTemplate.Templates() {
 			_, err = finalTemplate.AddParseTree(tmpl.Name(), tmpl.Tree)
 			if err != nil {
