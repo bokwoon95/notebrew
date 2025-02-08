@@ -65,6 +65,14 @@
       {{- end }}
     </div>
   </div>
+  <div class='mv3'>
+    <div><label for='fromCreated' class='b'>From:</label></div>
+    <input id='fromCreated' name='fromCreated' type='date' value='{{ $.FromCreated }}' class='pv1 ph2 br2 ba'>
+  </div>
+  <div class='mv3'>
+    <div><label for='beforeCreated' class='b'>Before:</label></div>
+    <input id='beforeCreated' name='beforeCreated' type='date' value='{{ $.BeforeCreated }}' class='pv1 ph2 br2 ba'>
+  </div>
   <button type='submit' class='button ba br2 b--black pa2 mv3 w-100'>search</button>
 </form>
 {{- if $.Matches }}

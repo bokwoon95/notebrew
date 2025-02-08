@@ -35,6 +35,8 @@ func (nbrew *Notebrew) search(w http.ResponseWriter, r *http.Request, user User,
 		OptionalTerms  []string `json:"optionalTerms"`
 		ExcludeTerms   []string `json:"excludeTerms"`
 		FileTypes      []string `json:"fileTypes"`
+		FromCreated    string   `json:"fromCreated"`
+		BeforeCreated  string   `json:"beforeCreated"`
 	}
 	type Response struct {
 		ContentBaseURL        string   `json:"contentBaseURL"`
@@ -51,6 +53,8 @@ func (nbrew *Notebrew) search(w http.ResponseWriter, r *http.Request, user User,
 		ExcludeTerms          []string `json:"excludeTerms"`
 		FileTypes             []string `json:"fileTypes"`
 		AvailableFileTypes    []string `json:"availableFileTypes"`
+		FromCreated           string   `json:"fromCreated"`
+		BeforeCreated         string   `json:"beforeCreated"`
 		Matches               []Match  `json:"matches"`
 	}
 
@@ -153,6 +157,8 @@ func (nbrew *Notebrew) search(w http.ResponseWriter, r *http.Request, user User,
 		OptionalTerms:  r.Form["optionalTerm"],
 		ExcludeTerms:   r.Form["excludeTerm"],
 		FileTypes:      r.Form["fileType"],
+		FromCreated:    r.Form.Get("fromCreated"),
+		BeforeCreated:  r.Form.Get("beforeCreated"),
 	}
 
 	var response Response
@@ -227,11 +233,52 @@ func (nbrew *Notebrew) search(w http.ResponseWriter, r *http.Request, user User,
 			}
 		}
 	}
+	// Date range.
+	const dateFormat = "2006-01-02"
+	const timeFormat = "2006-01-02T15-04-05"
+	const zuluTimeFormat = "2006-01-02T150405.999999999Z"
+	var err error
+	var fromCreated, beforeCreated time.Time
+	if request.FromCreated != "" {
+		if len(request.FromCreated) == len(dateFormat) {
+			fromCreated, err = time.ParseInLocation(dateFormat, request.FromCreated, time.FixedZone("", user.TimezoneOffsetSeconds))
+			if err == nil {
+				response.FromCreated = fromCreated.Format(dateFormat)
+			}
+		} else if strings.HasSuffix(request.FromCreated, "Z") {
+			fromCreated, err = time.ParseInLocation(zuluTimeFormat, request.FromCreated, time.UTC)
+			if err == nil {
+				response.FromCreated = fromCreated.Format(zuluTimeFormat)
+			}
+		} else {
+			fromCreated, err = time.ParseInLocation(timeFormat, request.FromCreated, time.UTC)
+			if err == nil {
+				response.FromCreated = fromCreated.Format(timeFormat)
+			}
+		}
+	}
+	if request.BeforeCreated != "" {
+		if len(request.BeforeCreated) == len(dateFormat) {
+			beforeCreated, err = time.ParseInLocation(dateFormat, request.BeforeCreated, time.FixedZone("", user.TimezoneOffsetSeconds))
+			if err == nil {
+				response.BeforeCreated = beforeCreated.Format(dateFormat)
+			}
+		} else if strings.HasSuffix(request.BeforeCreated, "Z") {
+			beforeCreated, err = time.ParseInLocation(zuluTimeFormat, request.BeforeCreated, time.UTC)
+			if err == nil {
+				response.BeforeCreated = beforeCreated.Format(zuluTimeFormat)
+			}
+		} else {
+			beforeCreated, err = time.ParseInLocation(timeFormat, request.BeforeCreated, time.UTC)
+			if err == nil {
+				response.BeforeCreated = beforeCreated.Format(timeFormat)
+			}
+		}
+	}
 	if len(response.MandatoryTerms) == 0 && len(response.OptionalTerms) == 0 {
 		writeResponse(w, r, response)
 		return
 	}
-	var err error
 	var parentFilter sq.Expression
 	parent := path.Join(sitePrefix, response.Parent)
 	if parent == "." {
@@ -279,6 +326,26 @@ func (nbrew *Notebrew) search(w http.ResponseWriter, r *http.Request, user User,
 		}
 		fileTypeFilter = sq.Expr(b.String(), args...)
 	}
+	dateRangeFilter := sq.Expr("1 = 1")
+	if response.FromCreated != "" || response.BeforeCreated != "" {
+		var b strings.Builder
+		var args []any
+		if response.FromCreated != "" {
+			if b.Len() > 0 {
+				b.WriteString(" AND ")
+			}
+			b.WriteString("files.creation_time >= {}")
+			args = append(args, sq.NewTimestamp(fromCreated))
+		}
+		if response.BeforeCreated != "" {
+			if b.Len() > 0 {
+				b.WriteString(" AND ")
+			}
+			b.WriteString("files.creation_time < {}")
+			args = append(args, sq.NewTimestamp(beforeCreated))
+		}
+		dateRangeFilter = sq.Expr(b.String(), args...)
+	}
 	switch databaseFS.Dialect {
 	case "sqlite":
 		var b strings.Builder
@@ -317,11 +384,13 @@ func (nbrew *Notebrew) search(w http.ResponseWriter, r *http.Request, user User,
 				" WHERE {parentFilter}" +
 				" AND files_fts5 MATCH {ftsQuery}" +
 				" AND {fileTypeFilter}" +
+				" AND {dateRangeFilter}" +
 				" ORDER BY files_fts5.rank, files.creation_time DESC",
 			Values: []any{
 				sq.Param("parentFilter", parentFilter),
 				sq.StringParam("ftsQuery", ftsQuery),
 				sq.Param("fileTypeFilter", fileTypeFilter),
+				sq.Param("dateRangeFilter", dateRangeFilter),
 			},
 		}, func(row *sq.Row) Match {
 			match := Match{
