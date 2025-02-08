@@ -320,7 +320,7 @@
     {{- if not $.IsDir }}
     <span class='ml2 f6 mid-gray'>{{ humanReadableFileSize $.Size }}</span>
     {{- end }}
-    <span class='ml2 f6 mid-gray'>{{ $.CreationTime.Format "2006-01-02" }}</span>
+    <span class='ml2 f6 mid-gray'>{{ formatTime $.CreationTime "2006-01-02" $.TimezoneOffsetSeconds }}</span>
     <a href='/{{ join "files" $.SitePrefix (dir $.FilePath) }}?from={{ base $.FilePath }}&fromEdited={{ $.ModTime.UTC.Format "2006-01-02T150405.999999999Z" }}&fromCreated={{ $.CreationTime.UTC.Format "2006-01-02T150405.999999999Z" }}&limit=1' class='ml2 f6'>view in folder</a>
     <a href='?raw' class='ml2 f6'>view raw</a>
     <div class='flex-grow-1'></div>
@@ -472,7 +472,7 @@ It's a [cat](https://en.wikipedia.org/wiki/Cat)</pre>
               {{- end }}
               <a href='/{{ join "files" $.SitePrefix $asset.Parent $asset.Name }}' class='flex-wrap'>{{ $asset.Name }}</a>
               <span class='ml2 f6 mid-gray'>{{ humanReadableFileSize $asset.Size }}</span>
-              <span class='ml2 f6 mid-gray'>{{ $asset.CreationTime.Format "2006-01-02" }}</span>
+              <span class='ml2 f6 mid-gray'>{{ formatTime $asset.CreationTime "2006-01-02" $.TimezoneOffsetSeconds }}</span>
             </div>
             {{- if $asset.Content }}
             <pre class='ma0 pre-wrap break-word'>{{ $asset.Content }}</pre>
@@ -527,7 +527,7 @@ It's a [cat](https://en.wikipedia.org/wiki/Cat)</pre>
               {{- end }}
               <a href='/{{ join "files" $.SitePrefix $asset.Parent $asset.Name }}' class='flex-wrap'>{{ $asset.Name }}</a>
               <span class='ml2 f6 mid-gray'>{{ humanReadableFileSize $asset.Size }}</span>
-              <span class='ml2 f6 mid-gray'>{{ $asset.CreationTime.Format "2006-01-02" }}</span>
+              <span class='ml2 f6 mid-gray'>{{ formatTime $asset.CreationTime "2006-01-02" $.TimezoneOffsetSeconds }}</span>
             </div>
             {{- if $asset.Content }}
             <pre class='ma0 pre-wrap break-word'>{{ $asset.Content }}</pre>

@@ -22,30 +22,31 @@ import (
 
 func (nbrew *Notebrew) image(w http.ResponseWriter, r *http.Request, user User, sitePrefix, filePath string, fileInfo fs.FileInfo) {
 	type Response struct {
-		ContentBaseURL    string            `json:"contentBaseURL"`
-		SitePrefix        string            `json:"sitePrefix"`
-		CDNDomain         string            `json:"cdnDomain"`
-		IsDatabaseFS      bool              `json:"isDatabaseFS"`
-		UserID            ID                `json:"userID"`
-		Username          string            `json:"username"`
-		DisableReason     string            `json:"disableReason"`
-		FileID            ID                `json:"fileID"`
-		FilePath          string            `json:"filePath"`
-		IsObject          bool              `json:"isObject"`
-		IsDir             bool              `json:"isDir"`
-		Size              int64             `json:"size"`
-		ModTime           time.Time         `json:"modTime"`
-		CreationTime      time.Time         `json:"creationTime"`
-		Content           string            `json:"content"`
-		AltText           string            `json:"altText"`
-		URL               template.URL      `json:"url"`
-		BelongsTo         string            `json:"belongsTo"`
-		PreviousImageID   ID                `json:"previousImageID"`
-		PreviousImageName string            `json:"previousImageName"`
-		NextImageID       ID                `json:"nextImageID"`
-		NextImageName     string            `json:"nextImageName"`
-		RegenerationStats RegenerationStats `json:"regenerationStats"`
-		PostRedirectGet   map[string]any    `json:"postRedirectGet"`
+		ContentBaseURL        string            `json:"contentBaseURL"`
+		SitePrefix            string            `json:"sitePrefix"`
+		CDNDomain             string            `json:"cdnDomain"`
+		IsDatabaseFS          bool              `json:"isDatabaseFS"`
+		UserID                ID                `json:"userID"`
+		Username              string            `json:"username"`
+		TimezoneOffsetSeconds int               `json:"timezoneOffsetSeconds"`
+		DisableReason         string            `json:"disableReason"`
+		FileID                ID                `json:"fileID"`
+		FilePath              string            `json:"filePath"`
+		IsObject              bool              `json:"isObject"`
+		IsDir                 bool              `json:"isDir"`
+		Size                  int64             `json:"size"`
+		ModTime               time.Time         `json:"modTime"`
+		CreationTime          time.Time         `json:"creationTime"`
+		Content               string            `json:"content"`
+		AltText               string            `json:"altText"`
+		URL                   template.URL      `json:"url"`
+		BelongsTo             string            `json:"belongsTo"`
+		PreviousImageID       ID                `json:"previousImageID"`
+		PreviousImageName     string            `json:"previousImageName"`
+		NextImageID           ID                `json:"nextImageID"`
+		NextImageName         string            `json:"nextImageName"`
+		RegenerationStats     RegenerationStats `json:"regenerationStats"`
+		PostRedirectGet       map[string]any    `json:"postRedirectGet"`
 	}
 
 	switch r.Method {
@@ -80,6 +81,7 @@ func (nbrew *Notebrew) image(w http.ResponseWriter, r *http.Request, user User, 
 		response.CDNDomain = nbrew.CDNDomain
 		response.UserID = user.UserID
 		response.Username = user.Username
+		response.TimezoneOffsetSeconds = user.TimezoneOffsetSeconds
 		response.DisableReason = user.DisableReason
 		if databaseFileInfo, ok := fileInfo.(*DatabaseFileInfo); ok {
 			response.FileID = databaseFileInfo.FileID
@@ -283,6 +285,9 @@ func (nbrew *Notebrew) image(w http.ResponseWriter, r *http.Request, user User, 
 			"baselineJS":            func() template.JS { return template.JS(BaselineJS) },
 			"referer":               func() string { return referer },
 			"safeHTML":              func(s string) template.HTML { return template.HTML(s) },
+			"formatTime": func(t time.Time, layout string, offset int) string {
+				return t.In(time.FixedZone("", offset)).Format(layout)
+			},
 			"head": func(s string) string {
 				head, _, _ := strings.Cut(s, "/")
 				return head

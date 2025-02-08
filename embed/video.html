@@ -76,7 +76,7 @@
     <span class='flex-grow-1 mh1'></span>
     <span class='b'>{{ base $.FilePath }}</span>
     <span class='ml2 f6 mid-gray flex items-center'>{{ humanReadableFileSize $.Size }}</span>
-    <span class='ml2 f6 mid-gray'>{{ $.CreationTime.Format "2006-01-02" }}</span>
+    <span class='ml2 f6 mid-gray'>{{ formatTime $.CreationTime "2006-01-02" $.TimezoneOffsetSeconds }}</span>
     <a href='/{{ join "files" $.SitePrefix (dir $.FilePath) }}?from={{ base $.FilePath }}&fromEdited={{ $.ModTime.UTC.Format "2006-01-02T150405.999999999Z" }}&fromCreated={{ $.CreationTime.UTC.Format "2006-01-02T150405.999999999Z" }}&limit=1' class='ml2 f6'>view in folder</a>
     <a href='{{ if and $.CDNDomain $.IsDatabaseFS }}//{{ $.CDNDomain }}/{{ $.FileID }}{{ ext $.FilePath }}{{ else }}?raw{{ end }}' class='ml2 f6'>view raw</a>
     <span class='flex-grow-1 mh1'></span>

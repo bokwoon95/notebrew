@@ -37,20 +37,21 @@ func (nbrew *Notebrew) search(w http.ResponseWriter, r *http.Request, user User,
 		FileTypes      []string `json:"fileTypes"`
 	}
 	type Response struct {
-		ContentBaseURL     string   `json:"contentBaseURL"`
-		SitePrefix         string   `json:"sitePrefix"`
-		CDNDomain          string   `json:"cdnDomain"`
-		IsDatabaseFS       bool     `json:"isDatabaseFS"`
-		UserID             ID       `json:"userID"`
-		Username           string   `json:"username"`
-		DisableReason      string   `json:"disableReason"`
-		Parent             string   `json:"parent"`
-		MandatoryTerms     []string `json:"mandatoryTerms"`
-		OptionalTerms      []string `json:"optionalTerms"`
-		ExcludeTerms       []string `json:"excludeTerms"`
-		FileTypes          []string `json:"fileTypes"`
-		AvailableFileTypes []string `json:"availableFileTypes"`
-		Matches            []Match  `json:"matches"`
+		ContentBaseURL        string   `json:"contentBaseURL"`
+		SitePrefix            string   `json:"sitePrefix"`
+		CDNDomain             string   `json:"cdnDomain"`
+		IsDatabaseFS          bool     `json:"isDatabaseFS"`
+		UserID                ID       `json:"userID"`
+		Username              string   `json:"username"`
+		TimezoneOffsetSeconds int      `json:"timezoneOffsetSeconds"`
+		DisableReason         string   `json:"disableReason"`
+		Parent                string   `json:"parent"`
+		MandatoryTerms        []string `json:"mandatoryTerms"`
+		OptionalTerms         []string `json:"optionalTerms"`
+		ExcludeTerms          []string `json:"excludeTerms"`
+		FileTypes             []string `json:"fileTypes"`
+		AvailableFileTypes    []string `json:"availableFileTypes"`
+		Matches               []Match  `json:"matches"`
 	}
 
 	if r.Method != "GET" {
@@ -99,6 +100,9 @@ func (nbrew *Notebrew) search(w http.ResponseWriter, r *http.Request, user User,
 			"baselineJS": func() template.JS { return template.JS(BaselineJS) },
 			"referer":    func() string { return referer },
 			"incr":       func(n int) int { return n + 1 },
+			"formatTime": func(t time.Time, layout string, offset int) string {
+				return t.In(time.FixedZone("", offset)).Format(layout)
+			},
 			"fileTypeSelected": func(value string) bool {
 				_, ok := selectedFileTypes[value]
 				return ok
@@ -158,6 +162,7 @@ func (nbrew *Notebrew) search(w http.ResponseWriter, r *http.Request, user User,
 	response.SitePrefix = sitePrefix
 	response.UserID = user.UserID
 	response.Username = user.Username
+	response.TimezoneOffsetSeconds = user.TimezoneOffsetSeconds
 	response.DisableReason = user.DisableReason
 	response.Parent = path.Clean(strings.Trim(request.Parent, "/"))
 	// Mandatory terms.

@@ -55,7 +55,7 @@
       {{- if or (not $file.IsDir) $.IsDatabaseFS }}
       <span class='ml2 f6 mid-gray'>{{ humanReadableFileSize $file.Size }}</span>
       {{- end }}
-      <span class='ml2 f6 mid-gray'>{{ $file.CreationTime.Format "2006-01-02" }}</span>
+      <span class='ml2 f6 mid-gray'>{{ formatTime $file.CreationTime "2006-01-02" $.TimezoneOffsetSeconds }}</span>
     </li>
     {{- end }}
   </ul>

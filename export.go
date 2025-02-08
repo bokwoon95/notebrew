@@ -51,21 +51,22 @@ func (nbrew *Notebrew) export(w http.ResponseWriter, r *http.Request, user User,
 		OutputName string   `json:"outputName"`
 	}
 	type Response struct {
-		ContentBaseURL string     `json:"contentBaseURL"`
-		CDNDomain      string     `json:"cdnDomain"`
-		IsDatabaseFS   bool       `json:"isDatabaseFS"`
-		SitePrefix     string     `json:"sitePrefix"`
-		UserID         ID         `json:"userID"`
-		Username       string     `json:"username"`
-		DisableReason  string     `json:"disableReason"`
-		Parent         string     `json:"parent"`
-		Names          []string   `json:"names"`
-		OutputName     string     `json:"outputName"`
-		ExportParent   bool       `json:"exportParent"`
-		TotalBytes     int64      `json:"totalBytes"`
-		Files          []File     `json:"files"`
-		Error          string     `json:"error"`
-		FormErrors     url.Values `json:"formErrors"`
+		ContentBaseURL        string     `json:"contentBaseURL"`
+		CDNDomain             string     `json:"cdnDomain"`
+		IsDatabaseFS          bool       `json:"isDatabaseFS"`
+		SitePrefix            string     `json:"sitePrefix"`
+		UserID                ID         `json:"userID"`
+		Username              string     `json:"username"`
+		TimezoneOffsetSeconds int        `json:"timezoneOffsetSeconds"`
+		DisableReason         string     `json:"disableReason"`
+		Parent                string     `json:"parent"`
+		Names                 []string   `json:"names"`
+		OutputName            string     `json:"outputName"`
+		ExportParent          bool       `json:"exportParent"`
+		TotalBytes            int64      `json:"totalBytes"`
+		Files                 []File     `json:"files"`
+		Error                 string     `json:"error"`
+		FormErrors            url.Values `json:"formErrors"`
 	}
 
 	switch r.Method {
@@ -97,6 +98,9 @@ func (nbrew *Notebrew) export(w http.ResponseWriter, r *http.Request, user User,
 				"stylesCSS":             func() template.CSS { return template.CSS(StylesCSS) },
 				"baselineJS":            func() template.JS { return template.JS(BaselineJS) },
 				"referer":               func() string { return referer },
+				"formatTime": func(t time.Time, layout string, offset int) string {
+					return t.In(time.FixedZone("", offset)).Format(layout)
+				},
 				"getFileType": func(name string) FileType {
 					return AllowedFileTypes[strings.ToLower(path.Ext(name))]
 				},
@@ -124,6 +128,7 @@ func (nbrew *Notebrew) export(w http.ResponseWriter, r *http.Request, user User,
 		}
 		response.UserID = user.UserID
 		response.Username = user.Username
+		response.TimezoneOffsetSeconds = user.TimezoneOffsetSeconds
 		response.DisableReason = user.DisableReason
 		response.SitePrefix = sitePrefix
 		response.Parent = path.Clean(strings.Trim(r.Form.Get("parent"), "/"))

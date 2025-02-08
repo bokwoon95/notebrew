@@ -40,34 +40,35 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 		AltText      string    `json:"altText"`
 	}
 	type Response struct {
-		ContentBaseURL    string            `json:"contentBaseURL"`
-		CDNDomain         string            `json:"cdnDomain"`
-		IsDatabaseFS      bool              `json:"isDatabaseFS"`
-		SitePrefix        string            `json:"sitePrefix"`
-		UserID            ID                `json:"userID"`
-		Username          string            `json:"username"`
-		DisableReason     string            `json:"disableReason"`
-		FileID            ID                `json:"fileID"`
-		FilePath          string            `json:"filePath"`
-		IsDir             bool              `json:"isDir"`
-		ModTime           time.Time         `json:"modTime"`
-		CreationTime      time.Time         `json:"creationTime"`
-		Size              int64             `json:"size"`
-		Content           string            `json:"content"`
-		URL               template.URL      `json:"url"`
-		BelongsTo         string            `json:"belongsTo"`
-		AssetDir          string            `json:"assetDir"`
-		UploadableExts    []string          `json:"uploadableExts"`
-		ImgExts           []string          `json:"imgExts"`
-		VideoExts         []string          `json:"videoExts"`
-		PinnedAssets      []Asset           `json:"pinnedAssets"`
-		Assets            []Asset           `json:"assets"`
-		UploadCount       int64             `json:"uploadCount"`
-		UploadSize        int64             `json:"uploadSize"`
-		FilesExist        []string          `json:"filesExist"`
-		FilesTooBig       []string          `json:"filesTooBig"`
-		RegenerationStats RegenerationStats `json:"regenerationStats"`
-		PostRedirectGet   map[string]any    `json:"postRedirectGet"`
+		ContentBaseURL        string            `json:"contentBaseURL"`
+		CDNDomain             string            `json:"cdnDomain"`
+		IsDatabaseFS          bool              `json:"isDatabaseFS"`
+		SitePrefix            string            `json:"sitePrefix"`
+		UserID                ID                `json:"userID"`
+		Username              string            `json:"username"`
+		TimezoneOffsetSeconds int               `json:"timezoneOffsetSeconds"`
+		DisableReason         string            `json:"disableReason"`
+		FileID                ID                `json:"fileID"`
+		FilePath              string            `json:"filePath"`
+		IsDir                 bool              `json:"isDir"`
+		ModTime               time.Time         `json:"modTime"`
+		CreationTime          time.Time         `json:"creationTime"`
+		Size                  int64             `json:"size"`
+		Content               string            `json:"content"`
+		URL                   template.URL      `json:"url"`
+		BelongsTo             string            `json:"belongsTo"`
+		AssetDir              string            `json:"assetDir"`
+		UploadableExts        []string          `json:"uploadableExts"`
+		ImgExts               []string          `json:"imgExts"`
+		VideoExts             []string          `json:"videoExts"`
+		PinnedAssets          []Asset           `json:"pinnedAssets"`
+		Assets                []Asset           `json:"assets"`
+		UploadCount           int64             `json:"uploadCount"`
+		UploadSize            int64             `json:"uploadSize"`
+		FilesExist            []string          `json:"filesExist"`
+		FilesTooBig           []string          `json:"filesTooBig"`
+		RegenerationStats     RegenerationStats `json:"regenerationStats"`
+		PostRedirectGet       map[string]any    `json:"postRedirectGet"`
 	}
 
 	fileType, ok := AllowedFileTypes[strings.ToLower(path.Ext(filePath))]
@@ -121,6 +122,7 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 		response.ContentBaseURL = nbrew.ContentBaseURL(sitePrefix)
 		response.UserID = user.UserID
 		response.Username = user.Username
+		response.TimezoneOffsetSeconds = user.TimezoneOffsetSeconds
 		response.DisableReason = user.DisableReason
 		response.SitePrefix = sitePrefix
 		response.ImgExts = imgExts
@@ -578,6 +580,9 @@ func (nbrew *Notebrew) file(w http.ResponseWriter, r *http.Request, user User, s
 			"referer":               func() string { return referer },
 			"clipboard":             func() url.Values { return clipboard },
 			"safeHTML":              func(s string) template.HTML { return template.HTML(s) },
+			"formatTime": func(t time.Time, layout string, offset int) string {
+				return t.In(time.FixedZone("", offset)).Format(layout)
+			},
 			"head": func(s string) string {
 				head, _, _ := strings.Cut(s, "/")
 				return head

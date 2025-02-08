@@ -34,22 +34,23 @@ func (nbrew *Notebrew) imports(w http.ResponseWriter, r *http.Request, user User
 		ProcessedBytes int64     `json:"processedBytes"`
 	}
 	type Response struct {
-		ContentBaseURL  string         `json:"contentBaseURL"`
-		CDNDomain       string         `json:"cdnDomain"`
-		IsDatabaseFS    bool           `json:"isDatabaseFS"`
-		SitePrefix      string         `json:"sitePrefix"`
-		UserID          ID             `json:"userID"`
-		Username        string         `json:"username"`
-		DisableReason   string         `json:"disableReason"`
-		FileID          ID             `json:"fileID"`
-		FilePath        string         `json:"filePath"`
-		IsDir           bool           `json:"isDir"`
-		ModTime         time.Time      `json:"modTime"`
-		CreationTime    time.Time      `json:"creationTime"`
-		ImportJobs      []ImportJob    `json:"importJobs"`
-		PinnedFiles     []File         `json:"pinnedfiles"`
-		Files           []File         `json:"files"`
-		PostRedirectGet map[string]any `json:"postRedirectGet"`
+		ContentBaseURL        string         `json:"contentBaseURL"`
+		CDNDomain             string         `json:"cdnDomain"`
+		IsDatabaseFS          bool           `json:"isDatabaseFS"`
+		SitePrefix            string         `json:"sitePrefix"`
+		UserID                ID             `json:"userID"`
+		Username              string         `json:"username"`
+		TimezoneOffsetSeconds int            `json:"timezoneOffsetSeconds"`
+		DisableReason         string         `json:"disableReason"`
+		FileID                ID             `json:"fileID"`
+		FilePath              string         `json:"filePath"`
+		IsDir                 bool           `json:"isDir"`
+		ModTime               time.Time      `json:"modTime"`
+		CreationTime          time.Time      `json:"creationTime"`
+		ImportJobs            []ImportJob    `json:"importJobs"`
+		PinnedFiles           []File         `json:"pinnedfiles"`
+		Files                 []File         `json:"files"`
+		PostRedirectGet       map[string]any `json:"postRedirectGet"`
 	}
 
 	if r.Method != "GET" && r.Method != "HEAD" {
@@ -129,6 +130,9 @@ func (nbrew *Notebrew) imports(w http.ResponseWriter, r *http.Request, user User
 			"clipboard":             func() url.Values { return clipboard },
 			"safeHTML":              func(s string) template.HTML { return template.HTML(s) },
 			"float64ToInt64":        func(n float64) int64 { return int64(n) },
+			"formatTime": func(t time.Time, layout string, offset int) string {
+				return t.In(time.FixedZone("", offset)).Format(layout)
+			},
 			"head": func(s string) string {
 				head, _, _ := strings.Cut(s, "/")
 				return head
@@ -188,6 +192,7 @@ func (nbrew *Notebrew) imports(w http.ResponseWriter, r *http.Request, user User
 	response.SitePrefix = sitePrefix
 	response.UserID = user.UserID
 	response.Username = user.Username
+	response.TimezoneOffsetSeconds = user.TimezoneOffsetSeconds
 	response.DisableReason = user.DisableReason
 	if databaseFileInfo, ok := fileInfo.(*DatabaseFileInfo); ok {
 		response.FileID = databaseFileInfo.FileID
