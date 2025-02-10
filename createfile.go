@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"html/template"
 	"io"
 	"io/fs"
@@ -802,11 +803,12 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, user U
 								defer os.Remove(inputPath)
 								defer os.Remove(outputPath)
 								cmd := exec.CommandContext(groupctx, cmdPath, inputPath, outputPath)
-								cmd.Stdout = os.Stdout
-								cmd.Stderr = os.Stderr
+								var stdout, stderr strings.Builder
+								cmd.Stdout = io.MultiWriter(os.Stdout, &stdout)
+								cmd.Stderr = io.MultiWriter(os.Stderr, &stderr)
 								err = cmd.Run()
 								if err != nil {
-									return stacktrace.New(err)
+									return stacktrace.New(fmt.Errorf("%w\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String()))
 								}
 								output, err := os.Open(outputPath)
 								if err != nil {
@@ -895,11 +897,12 @@ func (nbrew *Notebrew) createfile(w http.ResponseWriter, r *http.Request, user U
 							defer os.Remove(inputPath)
 							defer os.Remove(outputPath)
 							cmd := exec.CommandContext(groupctx, cmdPath, inputPath, outputPath)
-							cmd.Stdout = os.Stdout
-							cmd.Stderr = os.Stderr
+							var stdout, stderr strings.Builder
+							cmd.Stdout = io.MultiWriter(os.Stdout, &stdout)
+							cmd.Stderr = io.MultiWriter(os.Stderr, &stderr)
 							err = cmd.Run()
 							if err != nil {
-								return stacktrace.New(err)
+								return stacktrace.New(fmt.Errorf("%w\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String()))
 							}
 							output, err := os.Open(outputPath)
 							if err != nil {
