@@ -1488,10 +1488,7 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 			if event != "cert_failed" {
 				return nil
 			}
-			isRenewal, _ := data["renewal"].(bool)
-			if !isRenewal {
-				return nil
-			}
+			renewal := fmt.Sprint(data["renewal"])
 			identifier := fmt.Sprint(data["identifier"])
 			remaining := fmt.Sprint(data["remaining"])
 			issuers := fmt.Sprint(data["issuers"])
@@ -1512,6 +1509,7 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 						"Content-Type", "text/plain; charset=utf-8",
 					},
 					Body: strings.NewReader("Certificate renewal failed." +
+						"\r\nRenewal: " + renewal +
 						"\r\nThe name on the certificate: " + identifier +
 						"\r\nThe issuer(s) tried: " + issuers +
 						"\r\nTime left on the certificate: " + remaining +
