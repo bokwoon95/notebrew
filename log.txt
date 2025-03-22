@@ -75,6 +75,11 @@ cli/stop_cmd.go
 notebrew/main.go
 gui/main.go
 
+TODO: wtf SQLite supports showing which column and the offset within the column that matched an FTS query. And it also supports substring matches as well, not just tokens with the trigram extension (I can use this to fix the problem of exact word matching). The only problem is, once I dabble into trigram matching can its behavior be replicated identically to Postgres and MySQL as well or does only SQLite support this feature?
+https://x.com/terronk/status/1902743529128186258 "Don’t use Apple Notes to store anything you ever need to find again."
+https://www.sqlite.org/fts5.html#the_detail_option
+https://andrewmara.com/blog/faster-sqlite-like-queries-using-fts5-trigram-indexes
+
 TODO: /files/lookup/?fileID=abcde => [{"fileID":"","filePath":"","creationTime":"",...}]
     - when smart client enters a directory, it loads entries from its local database and makes a call to directories.go at the same time using the same view params.
     - for each deleted file, it calls files/lookup/fileID=xxxx in order to find if the file was deleted or just moved. if it was deleted, move it to the trash. if it was moved, create a new file entry.
