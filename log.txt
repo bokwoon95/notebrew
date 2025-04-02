@@ -80,6 +80,8 @@ TODO: file permalinks, so that you can always link to a file without worrying ab
 - Without ?api query param, it lists a bunch of files in the order their fileIDs appear in, just like in the /search page (meaning with image, video and text previews as well).
 - With the ?api query param, it lists the output as JSON (which can be parsed by a client). This is used by smart clients doing client-side sync to check if a missing file in a directory was relocated or deleted, by querying for that fileID in /lookup and seeing if it exists and where its new filePath is.
 
+TODO: file.go to support both files and images, always support previous and next files. And furthermore, this should follow the sort and order cookies (can be overridden with a query param, this is how API clients can use it).
+
 TODO: wtf SQLite supports showing which column and the offset within the column that matched an FTS query. And it also supports substring matches as well, not just tokens with the trigram extension (I can use this to fix the problem of exact word matching). The only problem is, once I dabble into trigram matching can its behavior be replicated identically to Postgres and MySQL as well or does only SQLite support this feature?
 https://x.com/terronk/status/1902743529128186258 "Don’t use Apple Notes to store anything you ever need to find again."
 https://www.sqlite.org/fts5.html#the_detail_option
