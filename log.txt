@@ -75,6 +75,10 @@ cli/stop_cmd.go
 notebrew/main.go
 gui/main.go
 
+TODO: add a -verbose flag to figure out why it is hanging
+TODO: add a flag to immediately provision a certificate into a directory of our choosing so that we can immediately test out the setup (surely we can simply tweak the cert directory for this?)
+TODO: add a way to disable wildcard certficates (or we can just disable dns config?)
+
 TODO: file permalinks, so that you can always link to a file without worrying about it being renamed or having to embed a unique search string within its contents.
 - /files/{sitePrefix}/lookup/ => basic HTML form with <input name=fileID>, which additional fileID fields can be added via JavaScript. Does a basic GET request of /files/{sitePrefix}/lookup/?fileID=xxxx&fileID=xxxx&fileID=xxxxx.
 - Without ?api query param, it lists a bunch of files in the order their fileIDs appear in, just like in the /search page (meaning with image, video and text previews as well).
