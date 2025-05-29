@@ -16,6 +16,7 @@ require (
 	github.com/caddyserver/certmagic v0.22.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-sql-driver/mysql v1.9.0
+	github.com/google/go-cmp v0.6.0
 	github.com/jackc/pgconn v1.14.3
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/jdkato/prose v1.2.1

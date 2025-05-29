@@ -28,6 +28,8 @@ import (
 	"time"
 
 	"github.com/bokwoon95/notebrew"
+	"github.com/bokwoon95/notebrew/godaddy"
+	"github.com/bokwoon95/notebrew/namecheap"
 	"github.com/bokwoon95/notebrew/sq"
 	"github.com/bokwoon95/notebrew/stacktrace"
 	"github.com/bokwoon95/sqddl/ddl"
@@ -37,8 +39,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/klauspost/cpuid/v2"
 	"github.com/libdns/cloudflare"
-	"github.com/libdns/godaddy"
-	"github.com/libdns/namecheap"
 	"github.com/libdns/porkbun"
 	"github.com/oschwald/maxminddb-golang"
 	"go.uber.org/zap"
