@@ -1473,6 +1473,8 @@ func Notebrew(configDir, dataDir string, csp map[string]string) (*notebrew.Noteb
 		buf.WriteString(" " + value)
 	}
 	buf.WriteString(";")
+	// font-src
+	buf.WriteString(" font-src 'self';")
 	nbrew.ContentSecurityPolicy = buf.String()
 	return nbrew, closers, nil
 }

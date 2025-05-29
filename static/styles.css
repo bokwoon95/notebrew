@@ -1,4 +1,5 @@
 /*! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css */
+@font-face { font-family: "Triplicate A Code"; src: url("/files/static/triplicate_a_code_regular.woff2") format("woff2"); }
 html { line-height: 1.15; -webkit-text-size-adjust: none; text-size-adjust: none; }
 body { margin: 0; }
 main { display: block; }
@@ -221,7 +222,7 @@ details[open] summary.button { background-color: white; }
 .break-word { overflow-wrap: break-word; word-break: break-word; }
 
 /* misc */
-code, .code { font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace; }
+code, .code { font-family: "Triplicate A Code", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace; }
 details > summary.hide-marker::marker, /* Latest Chrome, Edge, Firefox */ details > summary.hide-marker::-webkit-details-marker /* Safari */ { display: none; }
 .list-style-disc { list-style: disc; }
 .o-70 { opacity: 0.7; }
