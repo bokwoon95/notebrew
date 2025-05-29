@@ -556,7 +556,7 @@ func (nbrew *Notebrew) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	file, err := nbrew.FS.Open(filePath)
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
+		if errors.Is(err, fs.ErrNotExist) || errors.Is(err, fs.ErrInvalid) {
 			custom404(w, r, nbrew.FS, sitePrefix)
 			return
 		}

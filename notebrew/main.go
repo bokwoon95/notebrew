@@ -37,8 +37,10 @@ func main() {
 			dataHomeDir = homeDir
 		}
 		var configDir string
+		var verbose bool
 		flagset := flag.NewFlagSet("", flag.ContinueOnError)
 		flagset.StringVar(&configDir, "configdir", "", "")
+		flagset.BoolVar(&verbose, "verbose", false, "")
 		err = flagset.Parse(os.Args[1:])
 		if err != nil {
 			return err
