@@ -1485,14 +1485,17 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 	var onEvent func(ctx context.Context, event string, data map[string]any) error
 	if nbrew.ErrorlogConfig.Email != "" && nbrew.Mailer != nil {
 		onEvent = func(ctx context.Context, event string, data map[string]any) error {
-			data["certmagic_event"] = event
+			if event == "tls_get_certificate" {
+				return nil
+			}
+			data["certmagic.event"] = event
+			b, err := json.Marshal(data)
+			if err != nil {
+				fmt.Sprintln(err)
+				return nil
+			}
+			fmt.Println(string(b))
 			if event != "cert_failed" {
-				b, err := json.Marshal(data)
-				if err != nil {
-					fmt.Sprintln(err)
-					return nil
-				}
-				fmt.Println(string(b))
 				return nil
 			}
 			renewal := fmt.Sprint(data["renewal"])
