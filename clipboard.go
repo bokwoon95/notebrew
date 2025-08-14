@@ -472,7 +472,7 @@ func (nbrew *Notebrew) clipboard(w http.ResponseWriter, r *http.Request, user Us
 								return nil
 							}
 						} else {
-							if !fileType.Has(AttributeImg) && !fileType.Has(AttributeVideo) && fileType.Ext != ".css" && fileType.Ext != ".jd" && fileType.Ext != ".md" {
+							if !fileType.Has(AttributeImg) && !fileType.Has(AttributeVideo) && fileType.Ext != ".css" && fileType.Ext != ".js" && fileType.Ext != ".md" {
 								invalidCh <- name
 								return nil
 							}
