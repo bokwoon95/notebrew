@@ -1543,7 +1543,14 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 		server.ReadHeaderTimeout = 5 * time.Minute
 		server.WriteTimeout = 60 * time.Minute
 		server.IdleTimeout = 5 * time.Minute
-		staticCertConfig := certmagic.NewDefault()
+		var staticCertConfig *certmagic.Config
+		staticCertCache := certmagic.NewCache(certmagic.CacheOptions{
+			GetConfigForCert: func(cert certmagic.Certificate) (*certmagic.Config, error) {
+				return staticCertConfig, nil
+			},
+			Logger: nbrew.CertLogger,
+		})
+		staticCertConfig = certmagic.New(staticCertCache, certmagic.Config{})
 		staticCertConfig.OnEvent = onEvent
 		staticCertConfig.Storage = nbrew.CertStorage
 		staticCertConfig.Logger = nbrew.CertLogger
@@ -1560,6 +1567,8 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 							Logger:      nbrew.CertLogger,
 						},
 					},
+					DisableHTTPChallenge:    true,
+					DisableTLSALPNChallenge: true,
 				}),
 			}
 		} else {
@@ -1579,7 +1588,14 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 		if err != nil {
 			return nil, err
 		}
-		dynamicCertConfig := certmagic.NewDefault()
+		var dynamicCertConfig *certmagic.Config
+		dynamicCertCache := certmagic.NewCache(certmagic.CacheOptions{
+			GetConfigForCert: func(cert certmagic.Certificate) (*certmagic.Config, error) {
+				return dynamicCertConfig, nil
+			},
+			Logger: nbrew.CertLogger,
+		})
+		dynamicCertConfig = certmagic.New(dynamicCertCache, certmagic.Config{})
 		dynamicCertConfig.OnEvent = onEvent
 		dynamicCertConfig.Storage = nbrew.CertStorage
 		dynamicCertConfig.Logger = nbrew.CertLogger
