@@ -1497,43 +1497,84 @@ func NewServer(nbrew *notebrew.Notebrew) (*http.Server, error) {
 				return nil
 			}
 			fmt.Println(string(b))
-			if event != "cert_failed" {
-				return nil
-			}
-			renewal := fmt.Sprint(data["renewal"])
-			identifier := fmt.Sprint(data["identifier"])
-			remaining := fmt.Sprint(data["remaining"])
-			issuers := fmt.Sprint(data["issuers"])
-			errmsg := fmt.Sprint(data["error"])
-			nbrew.BaseCtxWaitGroup.Add(1)
-			go func() {
-				defer func() {
-					if v := recover(); v != nil {
-						fmt.Println(stacktrace.New(fmt.Errorf("panic: %v", v)))
+			switch event {
+			case "cert_obtained":
+				renewal := fmt.Sprint(data["renewal"])
+				identifier := fmt.Sprint(data["identifier"])
+				remaining := fmt.Sprint(data["remaining"])
+				issuers := fmt.Sprint(data["issuers"])
+				storagePath := fmt.Sprint(data["storage_path"])
+				privateKeyPath := fmt.Sprint(data["private_key_path"])
+				certificatePath := fmt.Sprint(data["certificate_path"])
+				metadataPath := fmt.Sprint(data["metadata_path"])
+				nbrew.BaseCtxWaitGroup.Add(1)
+				go func() {
+					defer func() {
+						if v := recover(); v != nil {
+							fmt.Println(stacktrace.New(fmt.Errorf("panic: %v", v)))
+						}
+					}()
+					defer nbrew.BaseCtxWaitGroup.Done()
+					mail := notebrew.Mail{
+						MailFrom: nbrew.MailFrom,
+						RcptTo:   nbrew.ErrorlogConfig.Email,
+						Headers: []string{
+							"Subject", "notebrew: certificate obtained for " + identifier,
+							"Content-Type", "text/plain; charset=utf-8",
+						},
+						Body: strings.NewReader("Certificate obtained." +
+							"\r\nRenewal: " + renewal +
+							"\r\nThe name on the certificate: " + identifier +
+							"\r\nThe previous or current issuer: " + issuers +
+							"\r\nTime left on the certificate: " + remaining +
+							"\r\nThe path to the folder containing the cert resources within storage: " + storagePath +
+							"\r\nThe path to the private key file in storage: " + privateKeyPath +
+							"\r\nThe path to the public key file in storage: " + certificatePath +
+							"\r\nThe path to the metadata file in storage: " + metadataPath,
+						),
+					}
+					select {
+					case <-ctx.Done():
+					case <-nbrew.BaseCtx.Done():
+					case nbrew.Mailer.C <- mail:
 					}
 				}()
-				defer nbrew.BaseCtxWaitGroup.Done()
-				mail := notebrew.Mail{
-					MailFrom: nbrew.MailFrom,
-					RcptTo:   nbrew.ErrorlogConfig.Email,
-					Headers: []string{
-						"Subject", "notebrew: certificate renewal for " + identifier + " failed: " + errmsg,
-						"Content-Type", "text/plain; charset=utf-8",
-					},
-					Body: strings.NewReader("Certificate renewal failed." +
-						"\r\nRenewal: " + renewal +
-						"\r\nThe name on the certificate: " + identifier +
-						"\r\nThe issuer(s) tried: " + issuers +
-						"\r\nTime left on the certificate: " + remaining +
-						"\r\nError: " + errmsg,
-					),
-				}
-				select {
-				case <-ctx.Done():
-				case <-nbrew.BaseCtx.Done():
-				case nbrew.Mailer.C <- mail:
-				}
-			}()
+			case "cert_failed":
+				renewal := fmt.Sprint(data["renewal"])
+				identifier := fmt.Sprint(data["identifier"])
+				remaining := fmt.Sprint(data["remaining"])
+				issuers := fmt.Sprint(data["issuers"])
+				errmsg := fmt.Sprint(data["error"])
+				nbrew.BaseCtxWaitGroup.Add(1)
+				go func() {
+					defer func() {
+						if v := recover(); v != nil {
+							fmt.Println(stacktrace.New(fmt.Errorf("panic: %v", v)))
+						}
+					}()
+					defer nbrew.BaseCtxWaitGroup.Done()
+					mail := notebrew.Mail{
+						MailFrom: nbrew.MailFrom,
+						RcptTo:   nbrew.ErrorlogConfig.Email,
+						Headers: []string{
+							"Subject", "notebrew: certificate renewal for " + identifier + " failed: " + errmsg,
+							"Content-Type", "text/plain; charset=utf-8",
+						},
+						Body: strings.NewReader("Certificate renewal failed." +
+							"\r\nRenewal: " + renewal +
+							"\r\nThe name on the certificate: " + identifier +
+							"\r\nThe issuer(s) tried: " + issuers +
+							"\r\nTime left on the certificate: " + remaining +
+							"\r\nError: " + errmsg,
+						),
+					}
+					select {
+					case <-ctx.Done():
+					case <-nbrew.BaseCtx.Done():
+					case nbrew.Mailer.C <- mail:
+					}
+				}()
+			}
 			return nil
 		}
 	}
